@@ -48,7 +48,7 @@ public class RobotContainer {
     drivebase.setDefaultCommand(!RobotBase.isSimulation() ?
                                 driveFieldOrientedDirectAngle :
                                 driveFieldOrientedDirectAngleSim);
-    elevator.setDefaultCommand(elevator.setElevator(0));
+    elevator.setDefaultCommand(elevator.setElevator(3));
     configureBindings();
     NamedCommands.registerCommand("test", Commands.print("Hello world"));
   }

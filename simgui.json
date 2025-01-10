@@ -10,7 +10,8 @@
       "/SmartDashboard/Motors": "Alerts",
       "/SmartDashboard/Pigeon 2 (v6) [0]": "Gyro",
       "/SmartDashboard/Swerve Drive": "Alerts",
-      "/SmartDashboard/el": "Mechanism2d"
+      "/SmartDashboard/el": "Mechanism2d",
+      "/SmartDashboard/elevator": "Mechanism2d"
     },
     "windows": {
       "/SmartDashboard/Field": {

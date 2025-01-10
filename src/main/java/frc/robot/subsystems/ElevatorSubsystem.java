@@ -73,21 +73,12 @@ public class ElevatorSubsystem extends SubsystemBase {
       m_mech2d.getRoot("Elevator Root", Units.inchesToMeters(5), Units.inchesToMeters(0.5));
   private final MechanismLigament2d m_elevatorMech2d =
       m_mech2dRoot.append(
-          new MechanismLigament2d("Elevator",5, 90));
+          new MechanismLigament2d("Elevator", m_elevatorSim.getPositionMeters(), 90));
 
   /** Subsystem constructor. */
   public ElevatorSubsystem(){
-    SmartDashboard.putData("el",m_mech2d);
-    m_elevatorSim.setInput(m_motorSim.getSpeed() * RobotController.getBatteryVoltage());
-
-    // Next, we update it. The standard loop time is 20ms.
-    m_elevatorSim.update(0.020);
-
-    // Finally, we set our simulated encoder's readings and simulated battery voltage
-    m_encoderSim.setDistance(m_elevatorSim.getPositionMeters());
-    // SimBattery estimates loaded battery voltages
-    RoboRioSim.setVInVoltage(
-        BatterySim.calculateDefaultBatteryLoadedVoltage(m_elevatorSim.getCurrentDrawAmps()));
+    m_encoder.setDistancePerPulse(Constants.kElevatorEncoderDistPerPulse);
+    SmartDashboard.putData("elevator",m_mech2d);
   }
 
   /**
@@ -114,10 +105,7 @@ public class ElevatorSubsystem extends SubsystemBase {
   }
 
   /** Stop the control loop and motor output. */
-  public double stop() {
-    m_motor.set(0.0);
-    return 0;
-  }
+ 
 
   /** Reset Exponential profile to begin from current position on enable. */
   public void reset() {
@@ -127,7 +115,27 @@ public class ElevatorSubsystem extends SubsystemBase {
   /** Update telemetry, including the mechanism visualization. */
   public void simulationPeriodic() {
     // Update elevator visualization with position
+    m_elevatorSim.setInput(m_motorSim.getSpeed() * RobotController.getBatteryVoltage());
+
+    // Next, we update it. The standard loop time is 20ms.
+    m_elevatorSim.update(0.020);
+
+    // Finally, we set our simulated encoder's readings and simulated battery voltage
+    m_encoderSim.setDistance(m_elevatorSim.getPositionMeters());
+    // SimBattery estimates loaded battery voltages
+    RoboRioSim.setVInVoltage(
+        BatterySim.calculateDefaultBatteryLoadedVoltage(m_elevatorSim.getCurrentDrawAmps()));
     m_elevatorMech2d.setLength(Constants.kElevatorMinimumLength + m_encoder.getDistance());
+  }
+
+  public double stop() {
+    m_motor.set(0.0);
+    return 0;
+  }
+
+  public void updateTelemetry() {
+    // Update elevator visualization with position
+    m_elevatorMech2d.setLength(m_encoder.getDistance());
   }
 
   public void close() {
@@ -135,5 +143,5 @@ public class ElevatorSubsystem extends SubsystemBase {
     m_motor.close();
     m_mech2d.close();
   }
-//nnnnn
+
 }
