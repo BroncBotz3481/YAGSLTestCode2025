@@ -4,19 +4,25 @@
 
 package frc.robot.subsystems;
 
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.sim.SparkMaxSim;
+import com.revrobotics.spark.ClosedLoopSlot;
+import com.revrobotics.spark.SparkBase.ControlType;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.SparkClosedLoopController;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
+import com.revrobotics.spark.config.MAXMotionConfig.MAXMotionPositionMode;
+import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ElevatorFeedforward;
-import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.trajectory.TrapezoidProfile;
-import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.motorcontrol.PWMSparkMax;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
-import edu.wpi.first.wpilibj.simulation.EncoderSim;
-import edu.wpi.first.wpilibj.simulation.PWMSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
@@ -31,24 +37,19 @@ public class ElevatorSubsystem extends SubsystemBase
 {
 
   // This gearbox represents a gearbox containing 4 Vex 775pro motors.
-  private final DCMotor m_elevatorGearbox = DCMotor.getVex775Pro(4);
+  private final DCMotor m_elevatorGearbox = DCMotor.getNEO(1);
 
   // Standard classes for controlling our elevator
-  private final ProfiledPIDController m_controller =
-      new ProfiledPIDController(
-          Constants.kElevatorKp,
-          Constants.kElevatorKi,
-          Constants.kElevatorKd,
-          new TrapezoidProfile.Constraints(2.45, 2.45));
   ElevatorFeedforward m_feedforward =
       new ElevatorFeedforward(
           Constants.kElevatorkS,
           Constants.kElevatorkG,
           Constants.kElevatorkV,
           Constants.kElevatorkA);
-  private final Encoder     m_encoder =
-      new Encoder(Constants.kEncoderAChannel, Constants.kEncoderBChannel);
-  private final PWMSparkMax m_motor   = new PWMSparkMax(Constants.kMotorPort);
+  private final SparkMax                  m_motor      = new SparkMax(1, MotorType.kBrushless);
+  private final SparkClosedLoopController m_controller = m_motor.getClosedLoopController();
+  private final RelativeEncoder           m_encoder    = m_motor.getEncoder();
+  private final SparkMaxSim               m_motorSim   = new SparkMaxSim(m_motor, m_elevatorGearbox);
 
   // Simulation classes help us simulate what's going on, including gravity.
   private final ElevatorSim m_elevatorSim =
@@ -63,8 +64,6 @@ public class ElevatorSubsystem extends SubsystemBase
           0,
           0.01,
           0.0);
-  private final EncoderSim  m_encoderSim  = new EncoderSim(m_encoder);
-  private final PWMSim      m_motorSim    = new PWMSim(m_motor);
 
   // Create a Mechanism2d visualization of the elevator
   private final Mechanism2d         m_mech2d         = new Mechanism2d(20, 12);
@@ -78,7 +77,19 @@ public class ElevatorSubsystem extends SubsystemBase
    */
   public ElevatorSubsystem()
   {
-    m_encoder.setDistancePerPulse(Constants.kElevatorEncoderDistPerPulse);
+    SparkMaxConfig config = new SparkMaxConfig();
+    config.encoder
+        .positionConversionFactor(Constants.kElevatorDrumRadius) // Converts Rotations to Meters
+        .velocityConversionFactor(Constants.kElevatorDrumRadius/60); // Converts RPM to MPS
+    config.closedLoop
+        .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+        .pid(Constants.kElevatorKp, Constants.kElevatorKi, Constants.kElevatorKd)
+        .maxMotion
+        .maxVelocity(2.45)
+        .maxAcceleration(2.45)
+        .positionMode(MAXMotionPositionMode.kMAXMotionTrapezoidal)
+        .allowedClosedLoopError(0.01);
+    m_motor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
 
     // Publish Mechanism2d to SmartDashboard
     // To view the Elevator visualization, select Network Tables -> SmartDashboard -> Elevator Sim
@@ -92,13 +103,14 @@ public class ElevatorSubsystem extends SubsystemBase
   {
     // In this method, we update our simulation of what our elevator is doing
     // First, we set our "inputs" (voltages)
-    m_elevatorSim.setInput(m_motorSim.getSpeed() * RobotController.getBatteryVoltage());
+    m_elevatorSim.setInput(m_motorSim.getAppliedOutput() * RoboRioSim.getVInVoltage());
 
     // Next, we update it. The standard loop time is 20ms.
     m_elevatorSim.update(0.020);
 
     // Finally, we set our simulated encoder's readings and simulated battery voltage
-    m_encoderSim.setDistance(m_elevatorSim.getPositionMeters());
+    m_motorSim.iterate(m_elevatorSim.getVelocityMetersPerSecond(), RoboRioSim.getVInVoltage(), 0.020);
+
     // SimBattery estimates loaded battery voltages
     RoboRioSim.setVInVoltage(
         BatterySim.calculateDefaultBatteryLoadedVoltage(m_elevatorSim.getCurrentDrawAmps()));
@@ -111,14 +123,18 @@ public class ElevatorSubsystem extends SubsystemBase
    */
   public void reachGoal(double goal)
   {
-    m_controller.setGoal(goal);
-
-    // With the setpoint value we run PID control like normal
-    double pidOutput         = m_controller.calculate(m_encoder.getDistance());
-    double feedforwardOutput = m_feedforward.calculate(m_controller.getSetpoint().velocity);
-    m_motor.setVoltage(pidOutput + feedforwardOutput);
+    m_controller.setReference(goal, ControlType.kPosition, ClosedLoopSlot.kSlot0, m_feedforward.calculate(m_encoder.getVelocity()));
   }
 
+
+  /**
+   * Get the height in meters.
+   * @return Height in meters
+   */
+  public double getHeight()
+  {
+    return m_encoder.getPosition();
+  }
   /**
    * A trigger for when the height is at an acceptable tolerance.
    *
@@ -129,8 +145,7 @@ public class ElevatorSubsystem extends SubsystemBase
   public Trigger atHeight(double height, double tolerance)
   {
     return new Trigger(() -> MathUtil.isNear(height,
-                                             RobotBase.isSimulation() ? m_encoderSim.getDistance()
-                                                                      : m_encoder.getDistance(),
+                                             getHeight(),
                                              tolerance));
   }
 
@@ -150,7 +165,6 @@ public class ElevatorSubsystem extends SubsystemBase
    */
   public void stop()
   {
-    m_controller.setGoal(0.0);
     m_motor.set(0.0);
   }
 
@@ -160,7 +174,7 @@ public class ElevatorSubsystem extends SubsystemBase
   public void updateTelemetry()
   {
     // Update elevator visualization with position
-    m_elevatorMech2d.setLength(m_encoder.getDistance());
+    m_elevatorMech2d.setLength(m_encoder.getPosition());
   }
 
   @Override
