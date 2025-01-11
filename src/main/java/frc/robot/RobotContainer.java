@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.subsystems.ArmSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
 
 
@@ -22,6 +23,7 @@ public class RobotContainer
 
   // The robot's subsystems and commands are defined here...
   private final ElevatorSubsystem     elevator           = new ElevatorSubsystem();
+  private final ArmSubsystem          arm                = new ArmSubsystem();
   // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_driverController = new CommandXboxController(0);
 
@@ -35,6 +37,7 @@ public class RobotContainer
 
     DriverStation.silenceJoystickConnectionWarning(true);
     elevator.setDefaultCommand(elevator.setGoal(0));
+    arm.setDefaultCommand(arm.setGoal(0));
     configureBindings();
   }
 
@@ -58,6 +61,10 @@ public class RobotContainer
     m_driverController.button(1).whileTrue(elevator.setGoal(3));
     m_driverController.button(2).whileTrue(elevator.setGoal(6));
     m_driverController.button(3).whileTrue(elevator.setGoal(9));
+    m_driverController.button(4).whileTrue(arm.setGoal(30));
+    m_driverController.button(5).whileTrue(arm.setGoal(60));
+    m_driverController.button(6).whileTrue(arm.setGoal(90));
+
     elevator.atHeight(5, 0.1).whileTrue(Commands.print("I AM ALIVE, YAAA HAAAAA"));
 
 

@@ -30,21 +30,21 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.robot.Constants;
+import frc.robot.Constants.ElevatorConstants;
 
 public class ElevatorSubsystem extends SubsystemBase
 {
 
-  // This gearbox represents a gearbox containing 4 Vex 775pro motors.
+  // This gearbox represents a gearbox containing 1 Neo
   private final DCMotor m_elevatorGearbox = DCMotor.getNEO(1);
 
   // Standard classes for controlling our elevator
   ElevatorFeedforward m_feedforward =
       new ElevatorFeedforward(
-          Constants.kElevatorkS,
-          Constants.kElevatorkG,
-          Constants.kElevatorkV,
-          Constants.kElevatorkA);
+          ElevatorConstants.kElevatorkS,
+          ElevatorConstants.kElevatorkG,
+          ElevatorConstants.kElevatorkV,
+          ElevatorConstants.kElevatorkA);
   private final SparkMax                  m_motor      = new SparkMax(1, MotorType.kBrushless);
   private final SparkClosedLoopController m_controller = m_motor.getClosedLoopController();
   private final RelativeEncoder           m_encoder    = m_motor.getEncoder();
@@ -54,11 +54,11 @@ public class ElevatorSubsystem extends SubsystemBase
   private final ElevatorSim m_elevatorSim =
       new ElevatorSim(
           m_elevatorGearbox,
-          Constants.kElevatorGearing,
-          Constants.kCarriageMass,
-          Constants.kElevatorDrumRadius,
-          Constants.kMinElevatorHeightMeters,
-          Constants.kMaxElevatorHeightMeters,
+          ElevatorConstants.kElevatorGearing,
+          ElevatorConstants.kCarriageMass,
+          ElevatorConstants.kElevatorDrumRadius,
+          ElevatorConstants.kMinElevatorHeightMeters,
+          ElevatorConstants.kMaxElevatorHeightMeters,
           true,
           0,
           0.01,
@@ -78,11 +78,11 @@ public class ElevatorSubsystem extends SubsystemBase
   {
     SparkMaxConfig config = new SparkMaxConfig();
     config.encoder
-        .positionConversionFactor(Constants.kElevatorDrumRadius * 2 * Math.PI) // Converts Rotations to Meters
-        .velocityConversionFactor((Constants.kElevatorDrumRadius * 2 * Math.PI) / 60); // Converts RPM to MPS
+        .positionConversionFactor(ElevatorConstants.kElevatorDrumRadius * 2 * Math.PI) // Converts Rotations to Meters
+        .velocityConversionFactor((ElevatorConstants.kElevatorDrumRadius * 2 * Math.PI) / 60); // Converts RPM to MPS
     config.closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-        .pid(Constants.kElevatorKp, Constants.kElevatorKi, Constants.kElevatorKd)
+        .pid(ElevatorConstants.kElevatorKp, ElevatorConstants.kElevatorKi, ElevatorConstants.kElevatorKd)
         .maxMotion
         .maxVelocity(2.45)
         .maxAcceleration(2.45)
