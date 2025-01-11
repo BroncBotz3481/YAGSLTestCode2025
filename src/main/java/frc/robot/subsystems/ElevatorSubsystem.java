@@ -79,8 +79,8 @@ public class ElevatorSubsystem extends SubsystemBase
   {
     SparkMaxConfig config = new SparkMaxConfig();
     config.encoder
-        .positionConversionFactor(Constants.kElevatorDrumRadius) // Converts Rotations to Meters
-        .velocityConversionFactor(Constants.kElevatorDrumRadius/60); // Converts RPM to MPS
+        .positionConversionFactor(Constants.kElevatorDrumRadius*2*Math.PI) // Converts Rotations to Meters
+        .velocityConversionFactor((Constants.kElevatorDrumRadius*2*Math.PI)/60); // Converts RPM to MPS
     config.closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(Constants.kElevatorKp, Constants.kElevatorKi, Constants.kElevatorKd)
