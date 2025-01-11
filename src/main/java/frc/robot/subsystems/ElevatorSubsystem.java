@@ -20,7 +20,6 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ElevatorFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
@@ -79,8 +78,8 @@ public class ElevatorSubsystem extends SubsystemBase
   {
     SparkMaxConfig config = new SparkMaxConfig();
     config.encoder
-        .positionConversionFactor(Constants.kElevatorDrumRadius*2*Math.PI) // Converts Rotations to Meters
-        .velocityConversionFactor((Constants.kElevatorDrumRadius*2*Math.PI)/60); // Converts RPM to MPS
+        .positionConversionFactor(Constants.kElevatorDrumRadius * 2 * Math.PI) // Converts Rotations to Meters
+        .velocityConversionFactor((Constants.kElevatorDrumRadius * 2 * Math.PI) / 60); // Converts RPM to MPS
     config.closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(Constants.kElevatorKp, Constants.kElevatorKi, Constants.kElevatorKd)
@@ -123,18 +122,23 @@ public class ElevatorSubsystem extends SubsystemBase
    */
   public void reachGoal(double goal)
   {
-    m_controller.setReference(goal, ControlType.kPosition, ClosedLoopSlot.kSlot0, m_feedforward.calculate(m_encoder.getVelocity()));
+    m_controller.setReference(goal,
+                              ControlType.kPosition,
+                              ClosedLoopSlot.kSlot0,
+                              m_feedforward.calculate(m_encoder.getVelocity()));
   }
 
 
   /**
    * Get the height in meters.
+   *
    * @return Height in meters
    */
   public double getHeight()
   {
     return m_encoder.getPosition();
   }
+
   /**
    * A trigger for when the height is at an acceptable tolerance.
    *
@@ -174,7 +178,7 @@ public class ElevatorSubsystem extends SubsystemBase
   public void updateTelemetry()
   {
     // Update elevator visualization with position
-    m_elevatorMech2d.setLength(m_encoder.getPosition());
+    m_elevatorMech2d.setLength(RobotBase.isSimulation() ? m_elevatorSim.getPositionMeters() : m_encoder.getPosition());
   }
 
   @Override
