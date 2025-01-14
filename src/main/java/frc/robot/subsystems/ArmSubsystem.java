@@ -1,6 +1,5 @@
 package frc.robot.subsystems;
 
-
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
@@ -22,26 +21,41 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
-public class ArmSubsystem extends SubsystemBase
-{
 
-  // The P gain for the PID controller that drives this arm.
-  private double m_armKp              = Constants.kDefaultArmKp;
+
+
+public class ArmSubsystem extends SubsystemBase {
+ 
+  // The arm gearbox represents a gearbox containing two Vex 775pro motors.
+  private final DCMotor m_armGearbox = DCMotor.getNEO(2);
+
+
+
+
+ // The P gain for the PID controller that drives this arm.
+  private double m_armKp = Constants.kDefaultArmKp;
   private double m_armSetpointDegrees = Constants.kDefaultArmSetpointDegrees;
 
-  // The arm gearbox represents a gearbox containing two Vex 775pro motors.
-  private final DCMotor m_armGearbox = DCMotor.getVex775Pro(2);
+
+
 
   // Standard classes for controlling our arm
   private final PIDController m_controller = new PIDController(m_armKp, 0, 0);
-  private final Encoder       m_encoder    =
+  private final Encoder m_encoder =
       new Encoder(Constants.kEncoderAChannel, Constants.kEncoderBChannel);
-  private final PWMSparkMax   m_motor      = new PWMSparkMax(Constants.kMotorPort);
+  private final PWMSparkMax m_motor = new PWMSparkMax(Constants.kMotorPort);
+
+
+
 
   // Simulation classes help us simulate what's going on, including gravity.
   // This arm sim represents an arm that can travel from -75 degrees (rotated down front)
   // to 255 degrees (rotated down in the back).
-  private final SingleJointedArmSim m_armSim     =
+
+
+
+
+  private final SingleJointedArmSim m_armSim =
       new SingleJointedArmSim(
           m_armGearbox,
           Constants.kArmReduction,
@@ -53,15 +67,18 @@ public class ArmSubsystem extends SubsystemBase
           0,
           Constants.kArmEncoderDistPerPulse,
           0.0 // Add noise with a std-dev of 1 tick
-      );
-  private final EncoderSim          m_encoderSim = new EncoderSim(m_encoder);
+          );
+  private final EncoderSim m_encoderSim = new EncoderSim(m_encoder);
+
+
+
 
   // Create a Mechanism2d display of an Arm with a fixed ArmTower and moving Arm.
-  private final Mechanism2d         m_mech2d   = new Mechanism2d(60, 60);
-  public final MechanismRoot2d     m_armPivot = m_mech2d.getRoot("ArmPivot", 30, 30);
+  private final Mechanism2d m_mech2d = new Mechanism2d(60, 60);
+  private final MechanismRoot2d m_armPivot = m_mech2d.getRoot("ArmPivot", 30, 30);
   private final MechanismLigament2d m_armTower =
       m_armPivot.append(new MechanismLigament2d("ArmTower", 30, -90));
-  private final MechanismLigament2d m_arm      =
+  private final MechanismLigament2d m_arm =
       m_armPivot.append(
           new MechanismLigament2d(
               "Arm",
@@ -70,33 +87,46 @@ public class ArmSubsystem extends SubsystemBase
               6,
               new Color8Bit(Color.kYellow)));
 
-  /**
-   * Subsystem constructor.
-   */
-  public ArmSubsystem()
-  {
+
+
+
+  /** Subsystem constructor. */
+  public ArmSubsystem() {
     m_encoder.setDistancePerPulse(Constants.kArmEncoderDistPerPulse);
+
+
+
 
     // Put Mechanism 2d to SmartDashboard
     SmartDashboard.putData("Arm Sim", m_mech2d);
     m_armTower.setColor(new Color8Bit(Color.kBlue));
 
+
+
+
     // Set the Arm position setpoint and P constant to Preferences if the keys don't already exist
+   
     Preferences.initDouble(Constants.kArmPositionKey, m_armSetpointDegrees);
     Preferences.initDouble(Constants.kArmPKey, m_armKp);
   }
 
-  /**
-   * Update the simulation model.
-   */
-  public void simulationPeriodic()
-  {
+
+
+
+  /** Update the simulation model. */
+  public void simulationPeriodic() {
     // In this method, we update our simulation of what our arm is doing
     // First, we set our "inputs" (voltages)
     m_armSim.setInput(m_motor.get() * RobotController.getBatteryVoltage());
 
+
+
+
     // Next, we update it. The standard loop time is 20ms.
     m_armSim.update(0.020);
+
+
+
 
     // Finally, we set our simulated encoder's readings and simulated battery voltage
     m_encoderSim.setDistance(m_armSim.getAngleRads());
@@ -104,51 +134,64 @@ public class ArmSubsystem extends SubsystemBase
     RoboRioSim.setVInVoltage(
         BatterySim.calculateDefaultBatteryLoadedVoltage(m_armSim.getCurrentDrawAmps()));
 
+
+
+
     // Update the Mechanism Arm angle based on the simulated arm angle
     m_arm.setAngle(Units.radiansToDegrees(m_armSim.getAngleRads()));
   }
 
-  /**
-   * Load setpoint and kP from preferences.
-   */
-  public void loadPreferences()
-  {
+
+
+
+  /** Load setpoint and kP from preferences. */
+  /*
+  public void loadPreferences() {//?
     // Read Preferences for Arm setpoint and kP on entering Teleop
     m_armSetpointDegrees = Preferences.getDouble(Constants.kArmPositionKey, m_armSetpointDegrees);
-    if (m_armKp != Preferences.getDouble(Constants.kArmPKey, m_armKp))
-    {
+    if (m_armKp != Preferences.getDouble(Constants.kArmPKey, m_armKp)) {
       m_armKp = Preferences.getDouble(Constants.kArmPKey, m_armKp);
       m_controller.setP(m_armKp);
     }
   }
+  */
 
-  /**
-   * Run the control loop to reach and maintain the setpoint from the preferences.
-   *
-   * @param setpointDegrees Setpoint in degrees
-   */
-  public void reachSetpoint(double setpointDegrees)
-  {
+
+
+
+  /** Run the control loop to reach and maintain the setpoint from the preferences. */
+  public void reachSetpoint(double setPointDegree) {//goal-in degrees?or rad
     var pidOutput =
         m_controller.calculate(
-            m_encoder.getDistance(), Units.degreesToRadians(setpointDegrees));
+            m_encoder.getDistance(), Units.degreesToRadians(setPointDegree));
     m_motor.setVoltage(pidOutput);
   }
 
-  /**
-   * Set the arm angle in degrees.
-   * @param degrees Arm angle
-   * @return Command to run the arm
-   */
-  public Command setGoal(double degrees)
-  {
-    return run(() -> reachSetpoint(degrees));
+
+
+
+  public Command setGoal(double degree){
+    return run(() -> reachSetpoint(degree));
   }
 
-  public void stop()
-  {
+
+
+
+  public void stop() {
     m_motor.set(0.0);
   }
 
-}
 
+
+
+  /*
+  public void close() {
+    m_motor.close();
+    m_encoder.close();
+    m_mech2d.close();
+    m_armPivot.close();
+    m_controller.close();
+    m_arm.close();
+  }*/
+   
+}

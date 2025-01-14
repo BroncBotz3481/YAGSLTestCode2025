@@ -37,8 +37,10 @@ public class RobotContainer
 
     DriverStation.silenceJoystickConnectionWarning(true);
     elevator.setDefaultCommand(elevator.setGoal(0));
+
     arm.setDefaultCommand(arm.setGoal(0));
     configureBindings();
+
   }
 
 
@@ -61,10 +63,8 @@ public class RobotContainer
     m_driverController.button(1).whileTrue(elevator.setGoal(3));
     m_driverController.button(2).whileTrue(elevator.setGoal(6));
     m_driverController.button(3).whileTrue(elevator.setGoal(9));
-    m_driverController.button(4).whileTrue(arm.setGoal(30));
-    m_driverController.button(5).whileTrue(arm.setGoal(60));
-    m_driverController.button(6).whileTrue(arm.setGoal(90));
-
+    m_driverController.button(4).whileTrue(arm.setGoal(45));
+    m_driverController.button(5).whileTrue(arm.setGoal(75));
     elevator.atHeight(5, 0.1).whileTrue(Commands.print("I AM ALIVE, YAAA HAAAAA"));
 
 
