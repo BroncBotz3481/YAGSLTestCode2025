@@ -1,5 +1,11 @@
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.RPM;
+import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.SparkBase.ControlType;
@@ -24,6 +30,7 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ArmConstants;
+import frc.robot.RobotMath.Arm;
 
 
 public class ArmSubsystem extends SubsystemBase
@@ -83,20 +90,9 @@ public class ArmSubsystem extends SubsystemBase
   public ArmSubsystem()
   {
     SparkMaxConfig config = new SparkMaxConfig();
-    config.encoder
-        .positionConversionFactor(1 / ArmConstants.kArmReduction)
-        .velocityConversionFactor(1);
     config.closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(ArmConstants.kDefaultArmKp, ArmConstants.kArmKi, ArmConstants.kArmKd);
-    /* .maxMotion
-        .maxVelocity(2.45)
-        .maxAcceleration(2.45)
-        .positionMode(MAXMotionPositionMode.kMAXMotionTrapezoidal)
-        .allowedClosedLoopError(0.01);
-    */
-
-    //.maxMotion?
     m_motor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
 
     // Put Mechanism 2d to SmartDashboard
@@ -122,8 +118,8 @@ public class ArmSubsystem extends SubsystemBase
     // Finally, we set our simulated encoder's readings and simulated battery voltage
     //m_encoderSim.setDistance(m_armSim.getAngleRads());
     m_motorSim.iterate(
-        Units.radiansPerSecondToRotationsPerMinute( // motor velocity, in RPM
-                                                    m_armSim.getVelocityRadPerSec()) * ArmConstants.kArmReduction,
+        RotationsPerSecond.of(Arm.convertAngleToSensorUnits(Radians.of(m_armSim.getVelocityRadPerSec())).in(Rotations))
+                          .in(RPM),
         RoboRioSim.getVInVoltage(), // Simulated battery voltage, in Volts
         0.02); // Time interval, in Seconds
 
@@ -136,31 +132,19 @@ public class ArmSubsystem extends SubsystemBase
 
   }
 
-  /** Load setpoint and kP from preferences. */
-  /*
-  public void loadPreferences() {//?
-    // Read Preferences for Arm setpoint and kP on entering Teleop
-    m_armSetpointDegrees = Preferences.getDouble(ArmConstants.kArmPositionKey, m_armSetpointDegrees);
-    if (m_armKp != Preferences.getDouble(ArmConstants.kArmPKey, m_armKp)) {
-      m_armKp = Preferences.getDouble(ArmConstants.kArmPKey, m_armKp);
-      m_controller.setP(m_armKp);
-    }
-  }
-  */
-
 
   /**
    * Run the control loop to reach and maintain the setpoint from the preferences.
    */
   public void reachSetpoint(double setPointDegree)
-  {//goal-in degrees?or rad
-    /*
-    var pidOutput =
-        m_controller.calculate(
-            m_encoder.getDistance(), Units.degreesToRadians(setPointDegree));
-    m_motor.setVoltage(pidOutput);
-    */
-    m_controller.setReference(Units.degreesToRotations(setPointDegree), ControlType.kPosition);
+  {
+    m_controller.setReference(Arm.convertAngleToSensorUnits(Degrees.of(setPointDegree)).in(Rotations),
+                              ControlType.kPosition);
+  }
+
+  public double getAngle()
+  {
+    return Arm.convertSensorUnitsToAngle(Rotations.of(m_encoder.getPosition())).in(Degrees);
   }
 
 
@@ -175,17 +159,11 @@ public class ArmSubsystem extends SubsystemBase
     m_motor.set(0.0);
   }
 
-
-
-
-  /*
-  public void close() {
-    m_motor.close();
-    m_encoder.close();
-    m_mech2d.close();
-    m_armPivot.close();
-    m_controller.close();
-    m_arm.close();
-  }*/
+  @Override
+  public void periodic()
+  {
+//    System.out.println(getAngle());
+//    System.out.println(Units.radiansToDegrees(m_armSim.getAngleRads()));
+  }
 
 }

@@ -4,6 +4,11 @@
 
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.RPM;
+import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.ClosedLoopSlot;
@@ -14,7 +19,6 @@ import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
-import com.revrobotics.spark.config.MAXMotionConfig.MAXMotionPositionMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ElevatorFeedforward;
@@ -31,6 +35,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.ElevatorConstants;
+import frc.robot.RobotMath.Elevator;
 
 public class ElevatorSubsystem extends SubsystemBase
 {
@@ -77,17 +82,13 @@ public class ElevatorSubsystem extends SubsystemBase
   public ElevatorSubsystem()
   {
     SparkMaxConfig config = new SparkMaxConfig();
-    config.encoder
-        .positionConversionFactor((ElevatorConstants.kElevatorDrumRadius * 2 * Math.PI)) // Converts Rotations to Meters
-        .velocityConversionFactor((ElevatorConstants.kElevatorDrumRadius * 2 * Math.PI) / 60); // Converts RPM to MPS
     config.closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(ElevatorConstants.kElevatorKp, ElevatorConstants.kElevatorKi, ElevatorConstants.kElevatorKd)
         .maxMotion
-        .maxVelocity(5)
-        .maxAcceleration(10)
-        .positionMode(MAXMotionPositionMode.kMAXMotionTrapezoidal)
-        .allowedClosedLoopError(0.001);
+        .maxVelocity(RotationsPerSecond.of(Elevator.convertDistanceToRotations(Meters.of(1)).in(Rotations)).in(RPM))
+        .maxAcceleration(RotationsPerSecond.of(Elevator.convertDistanceToRotations(Meters.of(2)).in(Rotations))
+                                           .in(RPM));
     m_motor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
 
     // Publish Mechanism2d to SmartDashboard
@@ -108,7 +109,9 @@ public class ElevatorSubsystem extends SubsystemBase
     m_elevatorSim.update(0.020);
 
     // Finally, we set our simulated encoder's readings and simulated battery voltage
-    m_motorSim.iterate(m_elevatorSim.getVelocityMetersPerSecond(), RoboRioSim.getVInVoltage(), 0.020);
+    m_motorSim.iterate(
+        Elevator.convertDistanceToRotations(Meters.of(m_elevatorSim.getVelocityMetersPerSecond()))
+                .in(Rotations) * 60, RoboRioSim.getVInVoltage(), 0.020);
 
     // SimBattery estimates loaded battery voltages
     RoboRioSim.setVInVoltage(
@@ -122,10 +125,12 @@ public class ElevatorSubsystem extends SubsystemBase
    */
   public void reachGoal(double goal)
   {
-    m_controller.setReference(goal,
-                              ControlType.kPosition,
+    m_controller.setReference(Elevator.convertDistanceToRotations(Meters.of(goal)).in(Rotations),
+                              ControlType.kMAXMotionPositionControl,
                               ClosedLoopSlot.kSlot0,
-                              m_feedforward.calculate(m_encoder.getVelocity()));
+                              m_feedforward.calculate(
+                                  Elevator.convertRotationsToDistance(Rotations.of(m_encoder.getVelocity()))
+                                          .in(Meters) / 60));
   }
 
 
@@ -136,7 +141,7 @@ public class ElevatorSubsystem extends SubsystemBase
    */
   public double getHeight()
   {
-    return m_encoder.getPosition();
+    return Elevator.convertRotationsToDistance(Rotations.of(m_encoder.getPosition())).in(Meters);
   }
 
   /**
