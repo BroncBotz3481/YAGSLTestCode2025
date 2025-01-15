@@ -78,16 +78,16 @@ public class ElevatorSubsystem extends SubsystemBase
   {
     SparkMaxConfig config = new SparkMaxConfig();
     config.encoder
-        .positionConversionFactor(ElevatorConstants.kElevatorDrumRadius * 2 * Math.PI) // Converts Rotations to Meters
+        .positionConversionFactor((ElevatorConstants.kElevatorDrumRadius * 2 * Math.PI)) // Converts Rotations to Meters
         .velocityConversionFactor((ElevatorConstants.kElevatorDrumRadius * 2 * Math.PI) / 60); // Converts RPM to MPS
     config.closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(ElevatorConstants.kElevatorKp, ElevatorConstants.kElevatorKi, ElevatorConstants.kElevatorKd)
         .maxMotion
-        .maxVelocity(2.45)
-        .maxAcceleration(2.45)
+        .maxVelocity(5)
+        .maxAcceleration(10)
         .positionMode(MAXMotionPositionMode.kMAXMotionTrapezoidal)
-        .allowedClosedLoopError(0.01);
+        .allowedClosedLoopError(0.001);
     m_motor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
 
     // Publish Mechanism2d to SmartDashboard
