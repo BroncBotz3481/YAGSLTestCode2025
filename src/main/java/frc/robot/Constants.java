@@ -12,12 +12,15 @@ public class Constants {
   public static final int kEncoderBChannel = 1;
   public static final int kJoystickPort = 0;
 
+  public static class ArmConstants{
+
   public static final String kArmPositionKey = "ArmPosition";
   public static final String kArmPKey = "ArmP";
 
   // The P gain for the PID controller that drives this arm.
   public static final double kDefaultArmKp = 50.0;
-  public static final double kDefaultArmSetpointDegrees = 75.0;
+  public static final double kArmKi = 0.0;
+  public static final double kArmKd = 0.0;
 
   // distance per pulse = (angle per revolution) / (pulses per revolution)
   //  = (2 * PI rads) / (4096 pulses)
@@ -28,6 +31,9 @@ public class Constants {
   public static final double kArmLength = Units.inchesToMeters(30);
   public static final double kMinAngleRads = Units.degreesToRadians(-75);
   public static final double kMaxAngleRads = Units.degreesToRadians(255);
+  
+  }
+
   public static class ElevatorConstants
   {
 

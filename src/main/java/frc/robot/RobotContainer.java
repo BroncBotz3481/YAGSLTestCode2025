@@ -64,7 +64,7 @@ public class RobotContainer
     m_driverController.button(2).whileTrue(elevator.setGoal(6));
     m_driverController.button(3).whileTrue(elevator.setGoal(9));
     m_driverController.button(4).whileTrue(arm.setGoal(45));
-    m_driverController.button(5).whileTrue(arm.setGoal(75));
+    m_driverController.button(5).whileTrue(arm.setGoal(90));
     elevator.atHeight(5, 0.1).whileTrue(Commands.print("I AM ALIVE, YAAA HAAAAA"));
 
 
