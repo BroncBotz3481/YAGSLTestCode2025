@@ -7,10 +7,13 @@ package frc.robot;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.subsystems.ArmSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
+import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
+
 
 
 /**
@@ -27,6 +30,7 @@ public class RobotContainer
   // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_driverController = new CommandXboxController(0);
 
+  //ParallelCommandGroup setElevArm = new ParallelCommandGroup(elevator.setGoal(10),arm.setGoal(60));
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -65,6 +69,7 @@ public class RobotContainer
     m_driverController.button(3).whileTrue(elevator.setGoal(9));
     m_driverController.button(4).whileTrue(arm.setGoal(45));
     m_driverController.button(5).whileTrue(arm.setGoal(90));
+    m_driverController.button(6).whileTrue(setElevArm(10, 70));
     elevator.atHeight(5, 0.1).whileTrue(Commands.print("I AM ALIVE, YAAA HAAAAA"));
 
 
@@ -85,6 +90,12 @@ public class RobotContainer
     // An example command will be run in autonomous
     return Autos.exampleAuto(m_exampleSubsystem);
   }*/
+
+ public ParallelCommandGroup setElevArm (double goal, double degree){
+  return  new ParallelCommandGroup(elevator.setGoal(goal), arm.setGoal(degree));
+ }
+
+  
 
 
 }
