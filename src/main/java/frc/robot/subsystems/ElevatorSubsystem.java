@@ -7,7 +7,7 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.Rotations;
-import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.Second;
 
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
@@ -86,9 +86,9 @@ public class ElevatorSubsystem extends SubsystemBase
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(ElevatorConstants.kElevatorKp, ElevatorConstants.kElevatorKi, ElevatorConstants.kElevatorKd)
         .maxMotion
-        .maxVelocity(RotationsPerSecond.of(Elevator.convertDistanceToRotations(Meters.of(1)).in(Rotations)).in(RPM))
-        .maxAcceleration(RotationsPerSecond.of(Elevator.convertDistanceToRotations(Meters.of(2)).in(Rotations))
-                                           .in(RPM));
+        .maxVelocity(Elevator.convertDistanceToRotations(Meters.of(1)).per(Second).in(RPM))
+        .maxAcceleration(Elevator.convertDistanceToRotations(Meters.of(2)).per(Second).per(Second)
+                                 .in(RPM.per(Second)));
     m_motor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
 
     // Publish Mechanism2d to SmartDashboard
