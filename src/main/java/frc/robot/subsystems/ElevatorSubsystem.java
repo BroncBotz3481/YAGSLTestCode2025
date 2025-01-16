@@ -5,6 +5,8 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Minute;
 import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.Rotations;
 import static edu.wpi.first.units.Units.Second;
@@ -110,8 +112,9 @@ public class ElevatorSubsystem extends SubsystemBase
 
     // Finally, we set our simulated encoder's readings and simulated battery voltage
     m_motorSim.iterate(
-        Elevator.convertDistanceToRotations(Meters.of(m_elevatorSim.getVelocityMetersPerSecond()))
-                .in(Rotations) * 60, RoboRioSim.getVInVoltage(), 0.020);
+        Elevator.convertDistanceToRotations(Meters.of(m_elevatorSim.getVelocityMetersPerSecond())).per(Second).in(RPM),
+        RoboRioSim.getVInVoltage(),
+        0.020);
 
     // SimBattery estimates loaded battery voltages
     RoboRioSim.setVInVoltage(
@@ -129,8 +132,8 @@ public class ElevatorSubsystem extends SubsystemBase
                               ControlType.kMAXMotionPositionControl,
                               ClosedLoopSlot.kSlot0,
                               m_feedforward.calculate(
-                                  Elevator.convertRotationsToDistance(Rotations.of(m_encoder.getVelocity()))
-                                          .in(Meters) / 60));
+                                  Elevator.convertRotationsToDistance(Rotations.of(m_encoder.getVelocity())).per(Minute)
+                                          .in(MetersPerSecond)));
   }
 
 
