@@ -65,7 +65,7 @@ public class ArmSubsystem extends SubsystemBase
           ArmConstants.kMaxAngleRads,
           true,
           0,
-          ArmConstants.kArmEncoderDistPerPulse,
+          0.02/4096.0,
           0.0 // Add noise with a std-dev of 1 tick
       );
 
@@ -91,12 +91,17 @@ public class ArmSubsystem extends SubsystemBase
   public ArmSubsystem()
   {
     SparkMaxConfig config = new SparkMaxConfig();
-    config.closedLoop
+    config
+        .smartCurrentLimit(40)
+        .closedLoopRampRate(0.25)
+        .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(ArmConstants.kDefaultArmKp, ArmConstants.kArmKi, ArmConstants.kArmKd)
+        .outputRange(-1,1)
         .maxMotion
-        .maxVelocity(Arm.convertAngleToSensorUnits(Degrees.of(45)).per(Second).in(RPM))
-        .maxAcceleration(Arm.convertAngleToSensorUnits(Degrees.of(90)).per(Second).per(Second).in(RPM.per(Second)));
+        .maxVelocity(Arm.convertAngleToSensorUnits(Degrees.of(90)).per(Second).in(RPM))
+        .maxAcceleration(Arm.convertAngleToSensorUnits(Degrees.of(180)).per(Second).per(Second).in(RPM.per(Second)))
+        .allowedClosedLoopError(Arm.convertAngleToSensorUnits(Degrees.of(1)).in(Rotations));
     m_motor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
 
     // Put Mechanism 2d to SmartDashboard

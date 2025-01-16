@@ -84,9 +84,13 @@ public class ElevatorSubsystem extends SubsystemBase
   public ElevatorSubsystem()
   {
     SparkMaxConfig config = new SparkMaxConfig();
-    config.closedLoop
+    config
+        .smartCurrentLimit(40)
+        .closedLoopRampRate(0.25)
+        .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(ElevatorConstants.kElevatorKp, ElevatorConstants.kElevatorKi, ElevatorConstants.kElevatorKd)
+        .outputRange(-1,1)
         .maxMotion
         .maxVelocity(Elevator.convertDistanceToRotations(Meters.of(1)).per(Second).in(RPM))
         .maxAcceleration(Elevator.convertDistanceToRotations(Meters.of(2)).per(Second).per(Second)
