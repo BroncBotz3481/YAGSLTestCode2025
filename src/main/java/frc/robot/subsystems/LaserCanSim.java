@@ -64,6 +64,14 @@ public class LaserCanSim implements LaserCanInterface
   @Override
   public Measurement getMeasurement()
   {
+    _measurement.ambient = m_ambient.get();
+    _measurement.distance_mm = m_distancemm.get();
+    _measurement.is_long = m_islong.get();
+    _measurement.status = m_status.get();
+    _measurement.roi.x = m_roiX.get();
+    _measurement.roi.y = m_roiY.get();
+    _measurement.roi.w = m_roiW.get();
+    _measurement.roi.h = m_roiH.get();
     return _measurement;
   }
 
