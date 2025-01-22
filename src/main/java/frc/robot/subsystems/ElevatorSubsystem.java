@@ -185,10 +185,14 @@ public class ElevatorSubsystem extends SubsystemBase
   {
     if (RobotBase.isSimulation())
     {
+      // Get values from Simulation
       Measurement measurement = m_elevatorLaserCanSim.getMeasurement();
+      // Change distance field
       measurement.distance_mm = (int) (Math.floor(Meters.of(m_elevatorSim.getPositionMeters()).in(Millimeters)) -
                                        m_laserCanOffsetMillimeters);
+      // Update simulation distance field.
       m_elevatorLaserCanSim.setMeasurementFullSim(measurement);
+
       m_encoder.setPosition(Elevator.convertDistanceToRotations(Millimeters.of(
                                         m_elevatorLaserCanSim.getMeasurement().distance_mm + m_laserCanOffsetMillimeters))
                                     .in(Rotations));
