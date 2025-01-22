@@ -187,7 +187,7 @@ public class ElevatorSubsystem extends SubsystemBase
     {
       m_elevatorLaserCanSim.setMeasurementFullSim(new Measurement(
           LASERCAN_STATUS_VALID_MEASUREMENT,
-          (int) (Math.floor(Meters.of(m_elevatorSim.getPositionMeters()).in(Millimeters)) +
+          (int) (Math.floor(Meters.of(m_elevatorSim.getPositionMeters()).in(Millimeters)) -
                  m_laserCanOffsetMillimeters),
           0,
           true,
@@ -195,12 +195,12 @@ public class ElevatorSubsystem extends SubsystemBase
           m_laserCanROI
       ));
       m_encoder.setPosition(Elevator.convertDistanceToRotations(Millimeters.of(
-                                        m_elevatorLaserCanSim.getMeasurement().distance_mm - m_laserCanOffsetMillimeters))
+                                        m_elevatorLaserCanSim.getMeasurement().distance_mm + m_laserCanOffsetMillimeters))
                                     .in(Rotations));
     } else
     {
       m_encoder.setPosition(Elevator.convertDistanceToRotations(Millimeters.of(
-                                        m_elevatorLaserCan.getMeasurement().distance_mm - m_laserCanOffsetMillimeters))
+                                        m_elevatorLaserCan.getMeasurement().distance_mm + m_laserCanOffsetMillimeters))
                                     .in(Rotations));
     }
   }
