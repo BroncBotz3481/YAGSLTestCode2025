@@ -19,7 +19,10 @@ import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
+import edu.wpi.first.wpilibj.simulation.DIOSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -49,6 +52,15 @@ public class ArmSubsystem extends SubsystemBase
   private final SparkClosedLoopController m_controller = m_motor.getClosedLoopController();
   private final RelativeEncoder           m_encoder    = m_motor.getEncoder();
 
+  // Sensors
+  private final DigitalInput m_limitSwitchHigh    = new DigitalInput(5);
+  private       DIOSim       m_limitSwitchHighSim = null;
+  private final DigitalInput m_limitSwitchLow     = new DigitalInput(2);
+  private       DIOSim       m_limitSwitchLowSim  = null;
+  private final DigitalInput m_coralInBin         = new DigitalInput(3);
+  private       DIOSim       m_coralInBinSim      = null;
+  private final DigitalInput m_coralInArm         = new DigitalInput(4);
+  private       DIOSim       m_coralInArmSim      = null;
   // Standard classes for controlling our arm
 
 
@@ -65,7 +77,7 @@ public class ArmSubsystem extends SubsystemBase
           ArmConstants.kMaxAngleRads,
           true,
           0,
-          0.02/4096.0,
+          0.02 / 4096.0,
           0.0 // Add noise with a std-dev of 1 tick
       );
 
@@ -97,7 +109,7 @@ public class ArmSubsystem extends SubsystemBase
         .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(ArmConstants.kDefaultArmKp, ArmConstants.kArmKi, ArmConstants.kArmKd)
-        .outputRange(-1,1)
+        .outputRange(-1, 1)
         .maxMotion
         .maxVelocity(Arm.convertAngleToSensorUnits(Degrees.of(90)).per(Second).in(RPM))
         .maxAcceleration(Arm.convertAngleToSensorUnits(Degrees.of(180)).per(Second).per(Second).in(RPM.per(Second)))
@@ -108,6 +120,17 @@ public class ArmSubsystem extends SubsystemBase
     SmartDashboard.putData("Arm Sim", m_mech2d);
     m_armTower.setColor(new Color8Bit(Color.kBlue));
 
+    if (RobotBase.isSimulation())
+    {
+      m_limitSwitchLowSim = new DIOSim(m_limitSwitchLow);
+      m_limitSwitchHighSim = new DIOSim(m_limitSwitchHigh);
+      m_coralInBinSim = new DIOSim(m_coralInBin);
+      m_coralInArmSim = new DIOSim(m_coralInArm);
+      SmartDashboard.putData("Coral Arm Limit Switch High", m_limitSwitchHigh);
+      SmartDashboard.putData("Coral Arm Limit Switch Low", m_limitSwitchLow);
+      SmartDashboard.putData("Coral Arm Coral in Bin", m_coralInBin);
+      SmartDashboard.putData("Coral Arm Coral in Arm", m_coralInArm);
+    }
 
   }
 
