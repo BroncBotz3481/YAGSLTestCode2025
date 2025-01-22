@@ -19,7 +19,6 @@ import au.grapplerobotics.interfaces.LaserCanInterface.Measurement;
 import au.grapplerobotics.interfaces.LaserCanInterface.RangingMode;
 import au.grapplerobotics.interfaces.LaserCanInterface.RegionOfInterest;
 import au.grapplerobotics.interfaces.LaserCanInterface.TimingBudget;
-import au.grapplerobotics.simulation.MockLaserCan;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.ClosedLoopSlot;
@@ -72,7 +71,7 @@ public class ElevatorSubsystem extends SubsystemBase
 
   // Sensors
   private final LaserCan         m_elevatorLaserCan          = new LaserCan(0);
-  private final MockLaserCan     m_elevatorLaserCanSim       = new MockLaserCan();
+  private final LaserCanSim      m_elevatorLaserCanSim       = new LaserCanSim(0);
   private final double           m_laserCanOffsetMillimeters = Inches.of(3).in(Millimeters);
   private final RegionOfInterest m_laserCanROI               = new RegionOfInterest(0, 0, 16, 16);
   private final TimingBudget     m_laserCanTimingBudget      = TimingBudget.TIMING_BUDGET_20MS;
