@@ -7,13 +7,12 @@ package frc.robot;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.subsystems.ArmSubsystem;
 import frc.robot.subsystems.ElevatorSubsystem;
-import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
-
 
 
 /**
@@ -64,11 +63,16 @@ public class RobotContainer
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
     // cancelling on release.
 
-    m_driverController.button(1).whileTrue(elevator.setGoal(3));
-    m_driverController.button(2).whileTrue(elevator.setGoal(6));
-    m_driverController.button(3).whileTrue(elevator.setGoal(9));
-    m_driverController.button(4).whileTrue(arm.setGoal(45));
-    m_driverController.button(5).whileTrue(arm.setGoal(90));
+//    m_driverController.button(1).whileTrue(elevator.setGoal(3));
+//    m_driverController.button(2).whileTrue(elevator.setGoal(6));
+//    m_driverController.button(3).whileTrue(elevator.setGoal(9));
+    m_driverController.button(1).whileTrue(arm.setGoal(15));
+    m_driverController.button(2).whileTrue(arm.setGoal(45));
+    m_driverController.button(3).whileTrue(arm.setGoal(90));
+
+    m_driverController.button(4).whileTrue(arm.setGoal(135));
+    m_driverController.button(5).whileTrue(arm.runSysIdRoutine(1));
+//    m_driverController.button(5).whileTrue(arm.setGoal(90));
     m_driverController.button(6).whileTrue(setElevArm(10, 70));
     elevator.atHeight(5, 0.1).whileTrue(Commands.print("I AM ALIVE, YAAA HAAAAA"));
 
@@ -81,6 +85,7 @@ public class RobotContainer
     return Commands.none();
 
   }
+
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
    *
@@ -90,12 +95,10 @@ public class RobotContainer
     // An example command will be run in autonomous
     return Autos.exampleAuto(m_exampleSubsystem);
   }*/
-
- public ParallelCommandGroup setElevArm (double goal, double degree){
-  return  new ParallelCommandGroup(elevator.setGoal(goal), arm.setGoal(degree));
- }
-
-  
+  public ParallelCommandGroup setElevArm(double goal, double degree)
+  {
+    return new ParallelCommandGroup(elevator.setGoal(goal), arm.setGoal(degree));
+  }
 
 
 }
