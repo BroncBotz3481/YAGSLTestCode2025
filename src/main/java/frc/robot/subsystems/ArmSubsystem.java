@@ -1,16 +1,15 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Degrees;
-import static edu.wpi.first.units.Units.Minute;
 import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.Radians;
-import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.Rotations;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 import static edu.wpi.first.units.Units.Second;
 import static edu.wpi.first.units.Units.Seconds;
 import static edu.wpi.first.units.Units.Volts;
 
+import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.ClosedLoopSlot;
@@ -58,12 +57,13 @@ public class ArmSubsystem extends SubsystemBase
   // The arm gearbox represents a gearbox containing two Vex 775pro motors.
   private final DCMotor m_armGearbox = DCMotor.getNEO(2);
 
-  public final Trigger atMin = new Trigger(()->getAngle().lte(ArmConstants.kMinAngleRads));
-  public final Trigger atMax = new Trigger(()->getAngle().gte(ArmConstants.kMaxAngleRads));
+  public final Trigger atMin = new Trigger(() -> getAngle().lte(ArmConstants.kMinAngleRads));
+  public final Trigger atMax = new Trigger(() -> getAngle().gte(ArmConstants.kMaxAngleRads));
 
   private final SparkMax                  m_motor      = new SparkMax(4, MotorType.kBrushless);
   private final SparkClosedLoopController m_controller = m_motor.getClosedLoopController();
   private final RelativeEncoder           m_encoder    = m_motor.getEncoder();
+  private final AbsoluteEncoder           m_absEncoder = m_motor.getAbsoluteEncoder();
 
   // Standard classes for controlling our arm
   private final ProfiledPIDController m_pidController;
@@ -106,7 +106,7 @@ public class ArmSubsystem extends SubsystemBase
   // Simulation classes help us simulate what's going on, including gravity.
   // This arm sim represents an arm that can travel from -75 degrees (rotated down front)
   // to 255 degrees (rotated down in the back).
-  private final SingleJointedArmSim m_armSim =
+  private final SingleJointedArmSim m_armSim   =
       new SingleJointedArmSim(
           m_armGearbox,
           ArmConstants.kArmReduction,
@@ -119,7 +119,7 @@ public class ArmSubsystem extends SubsystemBase
           0.02 / 4096.0,
           0.0 // Add noise with a std-dev of 1 tick
       );
-  private final SparkMaxSim               m_motorSim   = new SparkMaxSim(m_motor, m_armGearbox);
+  private final SparkMaxSim         m_motorSim = new SparkMaxSim(m_motor, m_armGearbox);
 
   // Create a Mechanism2d display of an Arm with a fixed ArmTower and moving Arm.
   private final Mechanism2d         m_mech2d   = new Mechanism2d(60, 60);
@@ -156,13 +156,14 @@ public class ArmSubsystem extends SubsystemBase
         .maxAcceleration(ArmConstants.kArmMaxAccelerationRPMperSecond)
         .allowedClosedLoopError(ArmConstants.kArmAllowedClosedLoopError.in(Rotations));
     m_motor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
-    m_encoder.setPosition(ArmConstants.kArmOffsetToHorizantalZero.in(Rotations));
+    synchronizeAbsoluteEncoder();
 
     // PID Controller
     m_pidController = new ProfiledPIDController(ArmConstants.kArmKp,
                                                 ArmConstants.kArmKi,
                                                 ArmConstants.kArmKd,
-                                                new Constraints(ArmConstants.kArmMaxVelocityRPM, ArmConstants.kArmMaxAccelerationRPMperSecond));
+                                                new Constraints(ArmConstants.kArmMaxVelocityRPM,
+                                                                ArmConstants.kArmMaxAccelerationRPMperSecond));
     m_pidController.setTolerance(0.01);
 
     // Put Mechanism 2d to SmartDashboard
@@ -224,6 +225,15 @@ public class ArmSubsystem extends SubsystemBase
   {
     return getAngle().isNear(ArmConstants.kMaxAngleRads, Units.degreesToRadians(toleranceDegrees));
 
+  }
+
+  /**
+   * Synchronizes the NEO encoder with the attached Absolute Encoder.
+   */
+  public void synchronizeAbsoluteEncoder()
+  {
+    m_encoder.setPosition(Rotations.of(m_absEncoder.getPosition()).minus(ArmConstants.kArmOffsetToHorizantalZero)
+                                   .in(Rotations));
   }
 
   /**
