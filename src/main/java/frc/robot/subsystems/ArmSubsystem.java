@@ -250,8 +250,6 @@ public class ArmSubsystem extends SubsystemBase
     {
       double pidOutput     = m_pidController.calculate(m_encoder.getPosition(), goalPosition);
       State  setpointState = m_pidController.getSetpoint();
-      System.out.println(Arm.convertSensorUnitsToAngle(getAngle()).in(Degrees));
-      System.out.println(setPointDegree);
       m_motor.setVoltage(pidOutput +
                          m_feedforward.calculate(setpointState.position,
                                                  setpointState.velocity)
