@@ -148,7 +148,7 @@ public class ArmSubsystem extends SubsystemBase
         .idleMode(IdleMode.kBrake)
         .inverted(ArmConstants.kArmInverted)
         .closedLoop
-        .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
+        .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(ArmConstants.kArmKp, ArmConstants.kArmKi, ArmConstants.kArmKd)
         .outputRange(-1, 1)
         .maxMotion
