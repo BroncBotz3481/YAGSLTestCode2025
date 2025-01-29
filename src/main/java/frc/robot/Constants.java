@@ -12,6 +12,7 @@ import static edu.wpi.first.units.Units.Second;
 
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
+import frc.robot.RobotMath.Arm;
 
 public class Constants
 {
@@ -28,10 +29,10 @@ public class Constants
     public static final String kArmPKey        = "ArmP";
 
     // The P gain for the PID controller that drives this arm.
-    public static final double kDefaultArmKp             = 2.0691;
-    public static final double kArmKi                    = 0;
+    public static final double kArmKp = 2.0691;
+    public static final double kArmKi = 0;
     public static final double kArmKd                    = 0.0;
-    public static final Angle kArmAllowedClosedLoopError = Degrees.of(0.01);
+    public static final Angle kArmAllowedClosedLoopError = Arm.convertAngleToSensorUnits(Degrees.of(0.01));
 
     public static final double  kArmReduction                   = 200;
     public static final double  kArmMass                        = 8.0; // Kilograms
@@ -41,15 +42,15 @@ public class Constants
     public static final double  kArmRampRate                    = 0.5;
     public static final Angle   kArmOffsetToHorizantalZero      = Rotations.of(0);
     public static final boolean kArmInverted                    = false;
-    public static final double  kArmMaxVelocityRPM              = Degrees.of(90).per(Second).in(RPM);
-    public static final double  kArmMaxAccelerationRPMperSecond = Degrees.of(180).per(Second).per(Second)
+    public static final double  kArmMaxVelocityRPM              = Arm.convertAngleToSensorUnits(Degrees.of(90)).per(Second).in(RPM);
+    public static final double  kArmMaxAccelerationRPMperSecond = Arm.convertAngleToSensorUnits(Degrees.of(180)).per(Second).per(Second)
                                                                          .in(RPM.per(Second));
     public static final int     kArmStallCurrentLimitAmps       = 40;
 
-    public static final double kArmkS = 0.2738; // volts (V)
-    public static final double kArmkG = 0.039519; // volts (V)
-    public static final double kArmKv = 0.10303; // volts per velocity (V/RPM)
-    public static final double kArmKa = 0.085472; // volts per acceleration (V/(RPM/s))
+    public static final double kArmkS = 0; // volts (V)
+    public static final double kArmkG = 0; // volts (V)
+    public static final double kArmKv = 0; // volts per velocity (V/RPM)
+    public static final double kArmKa = 0; // volts per acceleration (V/(RPM/s))
   }
 
   public static class ElevatorConstants

@@ -11,7 +11,6 @@ import static edu.wpi.first.units.Units.Second;
 import static edu.wpi.first.units.Units.Seconds;
 import static edu.wpi.first.units.Units.Volts;
 
-import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.ClosedLoopSlot;
@@ -34,11 +33,8 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.MutAngle;
 import edu.wpi.first.units.measure.MutAngularVelocity;
 import edu.wpi.first.units.measure.MutVoltage;
-import edu.wpi.first.wpilibj.DigitalInput;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
-import edu.wpi.first.wpilibj.simulation.DIOSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -49,6 +45,7 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.Constants.ArmConstants;
@@ -61,24 +58,12 @@ public class ArmSubsystem extends SubsystemBase
   // The arm gearbox represents a gearbox containing two Vex 775pro motors.
   private final DCMotor m_armGearbox = DCMotor.getNEO(2);
 
-
-  // The P gain for the PID controller that drives this arm.
-  private double m_armKp = ArmConstants.kDefaultArmKp;
+  public final Trigger atMin = new Trigger(()->getAngle().lte(ArmConstants.kMinAngleRads));
+  public final Trigger atMax = new Trigger(()->getAngle().gte(ArmConstants.kMaxAngleRads));
 
   private final SparkMax                  m_motor      = new SparkMax(4, MotorType.kBrushless);
-  private final SparkMaxSim               m_motorSim   = new SparkMaxSim(m_motor, m_armGearbox);
   private final SparkClosedLoopController m_controller = m_motor.getClosedLoopController();
   private final RelativeEncoder           m_encoder    = m_motor.getEncoder();
-
-  // Sensors
-  private final DigitalInput m_limitSwitchHigh    = new DigitalInput(5);
-  private       DIOSim       m_limitSwitchHighSim = null;
-  private final DigitalInput m_limitSwitchLow     = new DigitalInput(2);
-  private       DIOSim       m_limitSwitchLowSim  = null;
-  private final DigitalInput m_coralInBin         = new DigitalInput(3);
-  private       DIOSim       m_coralInBinSim      = null;
-  private final DigitalInput m_coralInArm         = new DigitalInput(4);
-  private       DIOSim       m_coralInArmSim      = null;
 
   // Standard classes for controlling our arm
   private final ProfiledPIDController m_pidController;
@@ -134,6 +119,7 @@ public class ArmSubsystem extends SubsystemBase
           0.02 / 4096.0,
           0.0 // Add noise with a std-dev of 1 tick
       );
+  private final SparkMaxSim               m_motorSim   = new SparkMaxSim(m_motor, m_armGearbox);
 
   // Create a Mechanism2d display of an Arm with a fixed ArmTower and moving Arm.
   private final Mechanism2d         m_mech2d   = new Mechanism2d(60, 60);
@@ -155,48 +141,34 @@ public class ArmSubsystem extends SubsystemBase
    */
   public ArmSubsystem()
   {
-    double maxVelocity = Arm.convertAngleToSensorUnits(Degrees.of(90)).per(Second).in(RPM);
-    double maxAcceleration = Arm.convertAngleToSensorUnits(Degrees.of(180)).per(Second).per(Second)
-                                .in(RPM.per(Second));
     SparkMaxConfig config = new SparkMaxConfig();
     config
-        .smartCurrentLimit(40)
+        .smartCurrentLimit(ArmConstants.kArmStallCurrentLimitAmps)
         .closedLoopRampRate(ArmConstants.kArmRampRate)
         .idleMode(IdleMode.kBrake)
         .inverted(ArmConstants.kArmInverted)
         .closedLoop
         .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
-        .pid(ArmConstants.kDefaultArmKp, ArmConstants.kArmKi, ArmConstants.kArmKd)
+        .pid(ArmConstants.kArmKp, ArmConstants.kArmKi, ArmConstants.kArmKd)
         .outputRange(-1, 1)
         .maxMotion
-        .maxVelocity(maxVelocity)
-        .maxAcceleration(maxAcceleration)
-        .allowedClosedLoopError(Arm.convertAngleToSensorUnits(Degrees.of(0.01)).in(Rotations));
-    config.absoluteEncoder.zeroOffset(ArmConstants.kArmOffsetToHorizantalZero.in(Rotations));
+        .maxVelocity(ArmConstants.kArmMaxVelocityRPM)
+        .maxAcceleration(ArmConstants.kArmMaxAccelerationRPMperSecond)
+        .allowedClosedLoopError(ArmConstants.kArmAllowedClosedLoopError.in(Rotations));
     m_motor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
+    m_encoder.setPosition(ArmConstants.kArmOffsetToHorizantalZero.in(Rotations));
 
     // PID Controller
-    m_pidController = new ProfiledPIDController(ArmConstants.kDefaultArmKp,
+    m_pidController = new ProfiledPIDController(ArmConstants.kArmKp,
                                                 ArmConstants.kArmKi,
                                                 ArmConstants.kArmKd,
-                                                new Constraints(maxVelocity, maxAcceleration));
+                                                new Constraints(ArmConstants.kArmMaxVelocityRPM, ArmConstants.kArmMaxAccelerationRPMperSecond));
     m_pidController.setTolerance(0.01);
 
     // Put Mechanism 2d to SmartDashboard
     SmartDashboard.putData("Arm Sim", m_mech2d);
     m_armTower.setColor(new Color8Bit(Color.kBlue));
 
-    if (RobotBase.isSimulation())
-    {
-      m_limitSwitchLowSim = new DIOSim(m_limitSwitchLow);
-      m_limitSwitchHighSim = new DIOSim(m_limitSwitchHigh);
-      m_coralInBinSim = new DIOSim(m_coralInBin);
-      m_coralInArmSim = new DIOSim(m_coralInArm);
-      SmartDashboard.putData("Coral Arm Limit Switch High", m_limitSwitchHigh);
-      SmartDashboard.putData("Coral Arm Limit Switch Low", m_limitSwitchLow);
-      SmartDashboard.putData("Coral Arm Coral in Bin", m_coralInBin);
-      SmartDashboard.putData("Coral Arm Coral in Arm", m_coralInArm);
-    }
 
   }
 
@@ -213,13 +185,13 @@ public class ArmSubsystem extends SubsystemBase
     // Next, we update it. The standard loop time is 20ms.
     m_armSim.update(0.020);
 
-    // Finally, we set our simulated encoder's readings and simulated battery voltage
-    //m_encoderSim.setDistance(m_armSim.getAngleRads());
     m_motorSim.iterate(
         RotationsPerSecond.of(Arm.convertAngleToSensorUnits(Radians.of(m_armSim.getVelocityRadPerSec())).in(Rotations))
                           .in(RPM),
         RoboRioSim.getVInVoltage(), // Simulated battery voltage, in Volts
         0.02); // Time interval, in Seconds
+    // Finally, we set our simulated encoder's readings and simulated battery voltage
+    m_encoder.setPosition(Arm.convertAngleToSensorUnits(Radians.of(m_armSim.getAngleRads())).in(Rotations));
 
     // SimBattery estimates loaded battery voltages
     RoboRioSim.setVInVoltage(
@@ -227,8 +199,6 @@ public class ArmSubsystem extends SubsystemBase
 
     // Update the Mechanism Arm angle based on the simulated arm angle
     m_arm.setAngle(Units.radiansToDegrees(m_armSim.getAngleRads()));
-    // Assuming we are using a Throughbore
-    m_motorSim.setPosition(Arm.convertAngleToSensorUnits(Radians.of(m_armSim.getAngleRads())).in(Rotations));
 
   }
 
@@ -259,16 +229,14 @@ public class ArmSubsystem extends SubsystemBase
   /**
    * Runs the SysId routine to tune the Arm
    *
-   * @param toleranceDegrees Tolerance of the Arm near the edges in Degrees.
    * @return SysId Routine command
    */
-  public Command runSysIdRoutine(double toleranceDegrees)
+  public Command runSysIdRoutine()
   {
-    return m_sysIdRoutine.dynamic(Direction.kForward).until(() -> nearMax(toleranceDegrees))
-                         .andThen(m_sysIdRoutine.dynamic(Direction.kReverse).until(() -> nearMin(toleranceDegrees)))
-                         .andThen(m_sysIdRoutine.quasistatic(Direction.kForward).until(() -> nearMax(toleranceDegrees)))
-                         .andThen(m_sysIdRoutine.quasistatic(Direction.kReverse)
-                                                .until(() -> nearMin(toleranceDegrees)));
+    return m_sysIdRoutine.dynamic(Direction.kForward).until(atMax)
+                         .andThen(m_sysIdRoutine.dynamic(Direction.kReverse)).until(atMin)
+                         .andThen(m_sysIdRoutine.quasistatic(Direction.kForward)).until(atMax)
+                         .andThen(m_sysIdRoutine.quasistatic(Direction.kReverse)).until(atMin);
   }
 
   /**
@@ -282,10 +250,11 @@ public class ArmSubsystem extends SubsystemBase
     {
       double pidOutput     = m_pidController.calculate(m_encoder.getPosition(), goalPosition);
       State  setpointState = m_pidController.getSetpoint();
+      System.out.println(Arm.convertSensorUnitsToAngle(getAngle()).in(Degrees));
+      System.out.println(setPointDegree);
       m_motor.setVoltage(pidOutput +
-                         m_feedforward.calculate(Rotations.of(setpointState.position).in(Radians),
-                                                 Arm.convertSensorUnitsToAngle(Rotations.of(setpointState.velocity))
-                                                    .per(Minute).in(RadiansPerSecond))
+                         m_feedforward.calculate(setpointState.position,
+                                                 setpointState.velocity)
                         );
     } else
     {
