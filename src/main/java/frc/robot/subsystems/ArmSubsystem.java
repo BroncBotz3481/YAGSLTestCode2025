@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.Minute;
 import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.units.Units.Rotations;
@@ -29,6 +30,7 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.MutAngle;
 import edu.wpi.first.units.measure.MutAngularVelocity;
 import edu.wpi.first.units.measure.MutVoltage;
@@ -94,11 +96,12 @@ public class ArmSubsystem extends SubsystemBase
                 // Record a frame for the shooter motor.
                 log.motor("arm")
                    .voltage(
-                       m_appliedVoltage.mut_replace(
-                           m_motor.getAppliedOutput() * RobotController.getBatteryVoltage(), Volts))
-                   .angularPosition(m_angle.mut_replace(m_encoder.getPosition(), Rotations))
-                   .angularVelocity(
-                       m_velocity.mut_replace(m_encoder.getVelocity(), RPM));
+                       m_appliedVoltage.mut_replace(m_motor.getAppliedOutput() *
+                                                    RobotController.getBatteryVoltage(), Volts))
+//                   .angularPosition(m_angle.mut_replace(m_encoder.getPosition(), Rotations))
+//                   .angularVelocity(m_velocity.mut_replace(m_encoder.getVelocity(), RPM));
+                .angularPosition(m_angle.mut_replace(getAngle()))
+                .angularVelocity(m_velocity.mut_replace(getVelocity()));
               },
               this));
 
@@ -280,6 +283,16 @@ public class ArmSubsystem extends SubsystemBase
   {
     m_angle.mut_replace(Arm.convertSensorUnitsToAngle(m_angle.mut_replace(m_encoder.getPosition(), Rotations)));
     return m_angle;
+  }
+
+  /**
+   * Get the velocity of Arm.
+   *
+   * @return Velocity of the Arm.
+   */
+  public AngularVelocity getVelocity()
+  {
+    return m_velocity.mut_replace(Arm.convertSensorUnitsToAngle(Rotations.of(m_encoder.getVelocity())).per(Minute));
   }
 
 

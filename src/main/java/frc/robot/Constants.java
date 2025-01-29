@@ -5,6 +5,7 @@
 package frc.robot;
 
 import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.units.Units.Rotations;
@@ -12,6 +13,7 @@ import static edu.wpi.first.units.Units.Second;
 
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.Distance;
 import frc.robot.RobotMath.Arm;
 
 public class Constants
@@ -70,8 +72,8 @@ public class Constants
     public static final double kCarriageMass       = 4.0; // kg
 
     // Encoder is reset to measure 0 at the bottom, so minimum height is 0.
-    public static final double kMinElevatorHeightMeters = 0.0;
-    public static final double kMaxElevatorHeightMeters = 10.25;
+    public static final Distance kMinElevatorHeight = Meters.of(0.0);
+    public static final Distance   kMaxElevatorHeight = Meters.of(10.25);
   }
 
 
