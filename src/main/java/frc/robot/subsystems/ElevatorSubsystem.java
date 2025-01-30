@@ -5,7 +5,6 @@
 package frc.robot.subsystems;
 
 import static au.grapplerobotics.interfaces.LaserCanInterface.LASERCAN_STATUS_VALID_MEASUREMENT;
-import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.Millimeters;
@@ -49,15 +48,13 @@ import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.DIOSim;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
-import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
-import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+import frc.robot.Constants;
 import frc.robot.Constants.ArmConstants;
 import frc.robot.Constants.ElevatorConstants;
 import frc.robot.RobotMath.Elevator;
@@ -65,8 +62,8 @@ import frc.robot.RobotMath.Elevator;
 public class ElevatorSubsystem extends SubsystemBase
 {
 
-  public final Trigger atMin = new Trigger(()->getHeight().lte(ElevatorConstants.kMinElevatorHeight));
-  public final Trigger atMax = new Trigger(()->getHeight().gte(ElevatorConstants.kMaxElevatorHeight));
+  public final Trigger atMin = new Trigger(() -> getHeight().lte(ElevatorConstants.kMinElevatorHeight));
+  public final Trigger atMax = new Trigger(() -> getHeight().gte(ElevatorConstants.kMaxElevatorHeight));
 
 
   // This gearbox represents a gearbox containing 1 Neo
@@ -85,13 +82,12 @@ public class ElevatorSubsystem extends SubsystemBase
   private final SparkMaxSim               m_motorSim   = new SparkMaxSim(m_motor, m_elevatorGearbox);
 
   // Sensors
-  private final LaserCan         m_elevatorLaserCan          = new LaserCan(0);
-  private final LaserCanSim      m_elevatorLaserCanSim       = new LaserCanSim(0);
-  private final double           m_laserCanOffsetMillimeters = Inches.of(3).in(Millimeters);
-  private final RegionOfInterest m_laserCanROI               = new RegionOfInterest(0, 0, 16, 16);
-  private final TimingBudget     m_laserCanTimingBudget      = TimingBudget.TIMING_BUDGET_20MS;
-  private final Alert            m_laserCanFailure           = new Alert("LaserCAN failed to configure.",
-                                                                         AlertType.kError);
+  private final LaserCan         m_elevatorLaserCan     = new LaserCan(0);
+  private final LaserCanSim      m_elevatorLaserCanSim  = new LaserCanSim(0);
+  private final RegionOfInterest m_laserCanROI          = new RegionOfInterest(0, 0, 16, 16);
+  private final TimingBudget     m_laserCanTimingBudget = TimingBudget.TIMING_BUDGET_20MS;
+  private final Alert            m_laserCanFailure      = new Alert("LaserCAN failed to configure.",
+                                                                    AlertType.kError);
 
   private final DigitalInput m_limitSwitchLow    = new DigitalInput(1);
   private       DIOSim       m_limitSwitchLowSim = null;
@@ -106,16 +102,10 @@ public class ElevatorSubsystem extends SubsystemBase
           ElevatorConstants.kMinElevatorHeight.in(Meters),
           ElevatorConstants.kMaxElevatorHeight.in(Meters),
           true,
-          0,
+          ElevatorConstants.kStartingHeightSim.in(Meters),
           0.01,
           0.0);
 
-  // Create a Mechanism2d visualization of the elevator
-  private final Mechanism2d         m_mech2d         = new Mechanism2d(20, 12);
-  private final MechanismRoot2d     m_mech2dRoot     = m_mech2d.getRoot("Elevator Root", 10, 0);
-  private final MechanismLigament2d m_elevatorMech2d =
-      m_mech2dRoot.append(
-          new MechanismLigament2d("Elevator", m_elevatorSim.getPositionMeters(), 90));
 
   // SysId Routine and seutp
   // Mutable holder for unit-safe voltage values, persisted to avoid reallocation.
@@ -166,7 +156,6 @@ public class ElevatorSubsystem extends SubsystemBase
 
     // Publish Mechanism2d to SmartDashboard
     // To view the Elevator visualization, select Network Tables -> SmartDashboard -> Elevator Sim
-    SmartDashboard.putData("Elevator Sim", m_mech2d);
 
     try
     {
@@ -210,13 +199,17 @@ public class ElevatorSubsystem extends SubsystemBase
     m_elevatorLaserCanSim.setMeasurementFullSim(new Measurement(
         LASERCAN_STATUS_VALID_MEASUREMENT,
         (int) (Math.floor(Meters.of(m_elevatorSim.getPositionMeters()).in(Millimeters)) +
-               m_laserCanOffsetMillimeters),
+               ElevatorConstants.kLaserCANOffset.in(Millimeters)),
         0,
         true,
         m_laserCanTimingBudget.asMilliseconds(),
         m_laserCanROI
     ));
 
+
+    // Update elevator visualization with position
+    Constants.kElevatorTower.setLength(getHeight().in(Meters));
+    Constants.kElevatorCarriage.setPosition(ArmConstants.kArmLength, getHeight().in(Meters));
   }
 
   /**
@@ -231,17 +224,17 @@ public class ElevatorSubsystem extends SubsystemBase
       Measurement measurement = m_elevatorLaserCanSim.getMeasurement();
       // Change distance field
       measurement.distance_mm = (int) (Math.floor(Meters.of(m_elevatorSim.getPositionMeters()).in(Millimeters)) -
-                                       m_laserCanOffsetMillimeters);
+                                       ElevatorConstants.kLaserCANOffset.in(Millimeters));
       // Update simulation distance field.
       m_elevatorLaserCanSim.setMeasurementFullSim(measurement);
 
       m_encoder.setPosition(Elevator.convertDistanceToRotations(Millimeters.of(
-                                        m_elevatorLaserCanSim.getMeasurement().distance_mm + m_laserCanOffsetMillimeters))
+                                        m_elevatorLaserCanSim.getMeasurement().distance_mm + ElevatorConstants.kLaserCANOffset.in(Millimeters)))
                                     .in(Rotations));
     } else
     {
       m_encoder.setPosition(Elevator.convertDistanceToRotations(Millimeters.of(
-                                        m_elevatorLaserCan.getMeasurement().distance_mm + m_laserCanOffsetMillimeters))
+                                        m_elevatorLaserCan.getMeasurement().distance_mm + ElevatorConstants.kLaserCANOffset.in(Millimeters)))
                                     .in(Rotations));
     }
   }
@@ -341,13 +334,10 @@ public class ElevatorSubsystem extends SubsystemBase
    */
   public void updateTelemetry()
   {
-    // Update elevator visualization with position
-    m_elevatorMech2d.setLength(RobotBase.isSimulation() ? m_elevatorSim.getPositionMeters() : m_encoder.getPosition());
   }
 
   @Override
   public void periodic()
   {
-    updateTelemetry();
   }
 }

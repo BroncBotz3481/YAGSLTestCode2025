@@ -38,9 +38,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
-import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
@@ -49,7 +47,9 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+import frc.robot.Constants;
 import frc.robot.Constants.ArmConstants;
+import frc.robot.Constants.ElevatorConstants;
 import frc.robot.RobotMath.Arm;
 
 
@@ -59,8 +59,8 @@ public class ArmSubsystem extends SubsystemBase
   // The arm gearbox represents a gearbox containing two Vex 775pro motors.
   private final DCMotor m_armGearbox = DCMotor.getNEO(2);
 
-  public final Trigger atMin = new Trigger(() -> getAngle().lte(ArmConstants.kMinAngleRads));
-  public final Trigger atMax = new Trigger(() -> getAngle().gte(ArmConstants.kMaxAngleRads));
+  public final Trigger atMin = new Trigger(() -> getAngle().lte(ArmConstants.kMinAngle));
+  public final Trigger atMax = new Trigger(() -> getAngle().gte(ArmConstants.kMaxAngle));
 
   private final SparkMax                  m_motor      = new SparkMax(4, MotorType.kBrushless);
   private final SparkClosedLoopController m_controller = m_motor.getClosedLoopController();
@@ -115,28 +115,16 @@ public class ArmSubsystem extends SubsystemBase
           ArmConstants.kArmReduction,
           SingleJointedArmSim.estimateMOI(ArmConstants.kArmLength, ArmConstants.kArmMass),
           ArmConstants.kArmLength,
-          ArmConstants.kMinAngleRads.in(Radians),
-          ArmConstants.kMaxAngleRads.in(Radians),
+          ArmConstants.kMinAngle.in(Radians),
+          ArmConstants.kMaxAngle.in(Radians),
           true,
-          0,
+          ArmConstants.kArmStartingAngle.in(Radians),
           0.02 / 4096.0,
           0.0 // Add noise with a std-dev of 1 tick
       );
   private final SparkMaxSim         m_motorSim = new SparkMaxSim(m_motor, m_armGearbox);
 
   // Create a Mechanism2d display of an Arm with a fixed ArmTower and moving Arm.
-  private final Mechanism2d         m_mech2d   = new Mechanism2d(60, 60);
-  private final MechanismRoot2d     m_armPivot = m_mech2d.getRoot("ArmPivot", 30, 30);
-  private final MechanismLigament2d m_armTower =
-      m_armPivot.append(new MechanismLigament2d("ArmTower", 30, -90));
-  private final MechanismLigament2d m_arm      =
-      m_armPivot.append(
-          new MechanismLigament2d(
-              "Arm",
-              30,
-              Units.radiansToDegrees(m_armSim.getAngleRads()),
-              6,
-              new Color8Bit(Color.kYellow)));
 
 
   /**
@@ -169,9 +157,6 @@ public class ArmSubsystem extends SubsystemBase
                                                                 ArmConstants.kArmMaxAccelerationRPMperSecond));
     m_pidController.setTolerance(0.01);
 
-    // Put Mechanism 2d to SmartDashboard
-    SmartDashboard.putData("Arm Sim", m_mech2d);
-    m_armTower.setColor(new Color8Bit(Color.kBlue));
 
 
   }
@@ -202,7 +187,7 @@ public class ArmSubsystem extends SubsystemBase
         BatterySim.calculateDefaultBatteryLoadedVoltage(m_armSim.getCurrentDrawAmps()));
 
     // Update the Mechanism Arm angle based on the simulated arm angle
-    m_arm.setAngle(Units.radiansToDegrees(m_armSim.getAngleRads()));
+    Constants.kArmMech.setAngle(Units.radiansToDegrees(m_armSim.getAngleRads()));
 
   }
 
@@ -214,7 +199,7 @@ public class ArmSubsystem extends SubsystemBase
    */
   public boolean nearMax(double toleranceDegrees)
   {
-    return getAngle().isNear(ArmConstants.kMaxAngleRads, Units.degreesToRadians(toleranceDegrees));
+    return getAngle().isNear(ArmConstants.kMaxAngle, Units.degreesToRadians(toleranceDegrees));
 
   }
 
@@ -226,7 +211,7 @@ public class ArmSubsystem extends SubsystemBase
    */
   public boolean nearMin(double toleranceDegrees)
   {
-    return getAngle().isNear(ArmConstants.kMaxAngleRads, Units.degreesToRadians(toleranceDegrees));
+    return getAngle().isNear(ArmConstants.kMaxAngle, Units.degreesToRadians(toleranceDegrees));
 
   }
 

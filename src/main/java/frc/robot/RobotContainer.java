@@ -5,6 +5,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
@@ -56,24 +57,26 @@ public class RobotContainer
    */
   private void configureBindings()
   {
-    // Schedule `ExampleCommand` when `exampleCondition` changes to `true`
-    /*new Trigger(m_exampleSubsystem::exampleCondition)
-        .onTrue(new ExampleCommand(m_exampleSubsystem));
-*/
-    // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
-    // cancelling on release.
+    // Put Mechanism 2d to SmartDashboard
+    SmartDashboard.putData("Side View", Constants.sideRobotView);
 
-//    m_driverController.button(1).whileTrue(elevator.setGoal(3));
-//    m_driverController.button(2).whileTrue(elevator.setGoal(6));
-//    m_driverController.button(3).whileTrue(elevator.setGoal(9));
     m_driverController.button(1).whileTrue(arm.setGoal(15));
+    m_driverController.button(1).whileTrue(elevator.setGoal(3));
+
+    m_driverController.button(2).whileTrue(elevator.setGoal(6));
     m_driverController.button(2).whileTrue(arm.setGoal(45));
+
+    m_driverController.button(3).whileTrue(elevator.setGoal(9));
     m_driverController.button(3).whileTrue(arm.setGoal(90));
 
     m_driverController.button(4).whileTrue(arm.setGoal(135));
+
     m_driverController.button(5).whileTrue(arm.runSysIdRoutine());
-//    m_driverController.button(5).whileTrue(arm.setGoal(90));
-    m_driverController.button(6).whileTrue(setElevArm(10, 70));
+
+    m_driverController.button(6).whileTrue(arm.setGoal(70));
+    m_driverController.button(6).whileTrue(elevator.setGoal(70));
+//    m_driverController.button(6).whileTrue(setElevArm(10, 70));
+
     elevator.atHeight(5, 0.1).whileTrue(Commands.print("I AM ALIVE, YAAA HAAAAA"));
 
 
