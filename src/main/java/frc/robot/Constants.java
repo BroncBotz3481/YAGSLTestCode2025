@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import frc.robot.RobotMath.Arm;
+import frc.robot.RobotMath.Elevator;
 
 public class Constants
 {
@@ -116,6 +117,11 @@ public class Constants
     public static final Distance kMaxElevatorHeight = Meters.of(10.25);
 
 
+    public static double kElevatorRampRate = 1;
+    public static int    kElevatorCurrentLimit = 40;
+    public static double kMaxVelocity = Elevator.convertDistanceToRotations(Meters.of(1)).per(Second).in(RPM);
+    public static double kMaxAcceleration = Elevator.convertDistanceToRotations(Meters.of(2)).per(Second).per(Second)
+                                                    .in(RPM.per(Second));
   }
 
 

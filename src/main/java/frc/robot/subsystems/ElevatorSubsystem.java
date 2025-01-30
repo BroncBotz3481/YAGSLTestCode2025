@@ -5,6 +5,7 @@
 package frc.robot.subsystems;
 
 import static au.grapplerobotics.interfaces.LaserCanInterface.LASERCAN_STATUS_VALID_MEASUREMENT;
+import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.Millimeters;
@@ -50,6 +51,7 @@ import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -62,8 +64,10 @@ import frc.robot.RobotMath.Elevator;
 public class ElevatorSubsystem extends SubsystemBase
 {
 
-  public final Trigger atMin = new Trigger(() -> getHeight().lte(ElevatorConstants.kMinElevatorHeight));
-  public final Trigger atMax = new Trigger(() -> getHeight().gte(ElevatorConstants.kMaxElevatorHeight));
+  public final Trigger atMin = new Trigger(() -> getHeight().isNear(ElevatorConstants.kMinElevatorHeight,
+                                                                    Inches.of(3)));
+  public final Trigger atMax = new Trigger(() -> getHeight().isNear(ElevatorConstants.kMaxElevatorHeight,
+                                                                    Inches.of(3)));
 
 
   // This gearbox represents a gearbox containing 1 Neo
@@ -118,7 +122,9 @@ public class ElevatorSubsystem extends SubsystemBase
   private final SysIdRoutine      m_sysIdRoutine   =
       new SysIdRoutine(
           // Empty config defaults to 1 volt/second ramp rate and 7 volt step voltage.
-          new SysIdRoutine.Config(Volts.per(Second).of(ArmConstants.kArmRampRate), Volts.of(1), Seconds.of(30)),
+          new SysIdRoutine.Config(Volts.per(Second).of(ElevatorConstants.kElevatorRampRate),
+                                  Volts.of(9),
+                                  Seconds.of(10)),
           new SysIdRoutine.Mechanism(
               // Tell SysId how to plumb the driving voltage to the motor(s).
               m_motor::setVoltage,
@@ -142,16 +148,15 @@ public class ElevatorSubsystem extends SubsystemBase
   {
     SparkMaxConfig config = new SparkMaxConfig();
     config
-        .smartCurrentLimit(40)
-        .closedLoopRampRate(0.25)
+        .smartCurrentLimit(ElevatorConstants.kElevatorCurrentLimit)
+        .closedLoopRampRate(ElevatorConstants.kElevatorRampRate)
         .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(ElevatorConstants.kElevatorKp, ElevatorConstants.kElevatorKi, ElevatorConstants.kElevatorKd)
         .outputRange(-1, 1)
         .maxMotion
-        .maxVelocity(Elevator.convertDistanceToRotations(Meters.of(1)).per(Second).in(RPM))
-        .maxAcceleration(Elevator.convertDistanceToRotations(Meters.of(2)).per(Second).per(Second)
-                                 .in(RPM.per(Second)));
+        .maxVelocity(ElevatorConstants.kMaxVelocity)
+        .maxAcceleration(ElevatorConstants.kMaxAcceleration);
     m_motor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
 
     // Publish Mechanism2d to SmartDashboard
@@ -206,7 +211,6 @@ public class ElevatorSubsystem extends SubsystemBase
         m_laserCanROI
     ));
 
-
     // Update elevator visualization with position
     Constants.kElevatorTower.setLength(getHeight().in(Meters));
     Constants.kElevatorCarriage.setPosition(ArmConstants.kArmLength, getHeight().in(Meters));
@@ -259,10 +263,11 @@ public class ElevatorSubsystem extends SubsystemBase
    */
   public Command runSysIdRoutine()
   {
-    return m_sysIdRoutine.dynamic(Direction.kForward).until(atMax)
-                         .andThen(m_sysIdRoutine.dynamic(Direction.kReverse)).until(atMin)
-                         .andThen(m_sysIdRoutine.quasistatic(Direction.kForward)).until(atMax)
-                         .andThen(m_sysIdRoutine.quasistatic(Direction.kReverse)).until(atMin);
+    return (m_sysIdRoutine.dynamic(Direction.kForward).until(atMax))
+            .andThen(m_sysIdRoutine.dynamic(Direction.kReverse).until(atMin))
+            .andThen(m_sysIdRoutine.quasistatic(Direction.kForward).until(atMax))
+            .andThen(m_sysIdRoutine.quasistatic(Direction.kReverse).until(atMin))
+            .andThen(Commands.print("DONE"));
   }
 
 
