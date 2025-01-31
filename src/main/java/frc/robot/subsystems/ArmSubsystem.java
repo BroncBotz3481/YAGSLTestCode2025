@@ -59,8 +59,8 @@ public class ArmSubsystem extends SubsystemBase
   // The arm gearbox represents a gearbox containing two Vex 775pro motors.
   private final DCMotor m_armGearbox = DCMotor.getNEO(2);
 
-  public final Trigger atMin = new Trigger(() -> getAngle().lte(ArmConstants.kMinAngle));
-  public final Trigger atMax = new Trigger(() -> getAngle().gte(ArmConstants.kMaxAngle));
+  public final Trigger atMin = new Trigger(() -> getAngle().isNear(ArmConstants.kMinAngle, Degrees.of(3)));
+  public final Trigger atMax = new Trigger(() -> getAngle().isNear(ArmConstants.kMaxAngle, Degrees.of(3)));
 
   private final SparkMax                  m_motor      = new SparkMax(4, MotorType.kBrushless);
   private final SparkClosedLoopController m_controller = m_motor.getClosedLoopController();
@@ -86,7 +86,7 @@ public class ArmSubsystem extends SubsystemBase
   private final SysIdRoutine       m_sysIdRoutine   =
       new SysIdRoutine(
           // Empty config defaults to 1 volt/second ramp rate and 7 volt step voltage.
-          new SysIdRoutine.Config(Volts.per(Second).of(ArmConstants.kArmRampRate), Volts.of(1), Seconds.of(30)),
+          new SysIdRoutine.Config(Volts.per(Second).of(ArmConstants.kArmRampRate), Volts.of(6), Seconds.of(5)),
           new SysIdRoutine.Mechanism(
               // Tell SysId how to plumb the driving voltage to the motor(s).
               m_motor::setVoltage,
