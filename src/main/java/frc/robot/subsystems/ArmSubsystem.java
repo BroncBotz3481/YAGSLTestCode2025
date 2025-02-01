@@ -271,7 +271,7 @@ public class ArmSubsystem extends SubsystemBase
   public Angle getAngle()
   {
     m_angle.mut_replace(Arm.convertSensorUnitsToAngle(m_angle.mut_replace(m_encoder.getPosition(), Rotations)));
-    return Arm.convertSensorUnitsToAngle(m_angle.mut_replace(m_encoder.getPosition(), Rotations));
+    return m_angle;
   }
 
   /**
