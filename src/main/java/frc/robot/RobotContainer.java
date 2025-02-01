@@ -40,7 +40,7 @@ public class RobotContainer
     // Configure the trigger bindings
 
     DriverStation.silenceJoystickConnectionWarning(true);
-    elevator.setDefaultCommand(elevator.setGoal(0));
+    elevator.setDefaultCommand(elevator.setGoal(4));
 
     arm.setDefaultCommand(arm.setGoal(0));
     configureBindings();
@@ -60,7 +60,7 @@ public class RobotContainer
     // Put Mechanism 2d to SmartDashboard
     SmartDashboard.putData("Side View", Constants.sideRobotView);
 
-    m_driverController.button(1).whileTrue(arm.setGoal(15));
+//    m_driverController.button(1).whileTrue(arm.setGoal(15));
     m_driverController.button(1).whileTrue(elevator.setGoal(3));
 
     m_driverController.button(2).whileTrue(elevator.setGoal(6));
@@ -71,7 +71,7 @@ public class RobotContainer
 
     m_driverController.button(4).whileTrue(arm.setGoal(135));
 
-    m_driverController.button(5).whileTrue(elevator.runSysIdRoutine());
+    m_driverController.button(5).whileTrue(arm.runSysIdRoutine());
 
     m_driverController.button(6).whileTrue(arm.setGoal(70));
     m_driverController.button(6).whileTrue(elevator.setGoal(4));

@@ -38,10 +38,6 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
-import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -49,7 +45,6 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.Constants;
 import frc.robot.Constants.ArmConstants;
-import frc.robot.Constants.ElevatorConstants;
 import frc.robot.RobotMath.Arm;
 
 
@@ -57,10 +52,10 @@ public class ArmSubsystem extends SubsystemBase
 {
 
   // The arm gearbox represents a gearbox containing two Vex 775pro motors.
-  private final DCMotor m_armGearbox = DCMotor.getNEO(2);
+  private final DCMotor m_armGearbox = DCMotor.getNEO(1);
 
-  public final Trigger atMin = new Trigger(() -> getAngle().isNear(ArmConstants.kMinAngle, Degrees.of(3)));
-  public final Trigger atMax = new Trigger(() -> getAngle().isNear(ArmConstants.kMaxAngle, Degrees.of(3)));
+  public final Trigger atMin = new Trigger(() -> getAngle().lte(ArmConstants.kMinAngle.plus(Degrees.of(5))));
+  public final Trigger atMax = new Trigger(() -> getAngle().gte(ArmConstants.kMaxAngle.minus(Degrees.of(5))));
 
   private final SparkMax                  m_motor      = new SparkMax(4, MotorType.kBrushless);
   private final SparkClosedLoopController m_controller = m_motor.getClosedLoopController();
@@ -86,7 +81,7 @@ public class ArmSubsystem extends SubsystemBase
   private final SysIdRoutine       m_sysIdRoutine   =
       new SysIdRoutine(
           // Empty config defaults to 1 volt/second ramp rate and 7 volt step voltage.
-          new SysIdRoutine.Config(Volts.per(Second).of(ArmConstants.kArmRampRate), Volts.of(6), Seconds.of(5)),
+          new SysIdRoutine.Config(Volts.per(Second).of(ArmConstants.kArmRampRate), Volts.of(6), Seconds.of(30)),
           new SysIdRoutine.Mechanism(
               // Tell SysId how to plumb the driving voltage to the motor(s).
               m_motor::setVoltage,
@@ -158,7 +153,6 @@ public class ArmSubsystem extends SubsystemBase
     m_pidController.setTolerance(0.01);
 
 
-
   }
 
 
@@ -199,7 +193,12 @@ public class ArmSubsystem extends SubsystemBase
    */
   public boolean nearMax(double toleranceDegrees)
   {
-    return getAngle().isNear(ArmConstants.kMaxAngle, Units.degreesToRadians(toleranceDegrees));
+    if (getAngle().isNear(ArmConstants.kMaxAngle, Degrees.of(toleranceDegrees)))
+    {
+      System.out.println("Current angle: " + getAngle().in(Degrees));
+      System.out.println("At max:" + getAngle().isNear(ArmConstants.kMaxAngle, Degrees.of(toleranceDegrees)));
+    }
+    return getAngle().isNear(ArmConstants.kMaxAngle, Degrees.of(toleranceDegrees));
 
   }
 
@@ -211,7 +210,12 @@ public class ArmSubsystem extends SubsystemBase
    */
   public boolean nearMin(double toleranceDegrees)
   {
-    return getAngle().isNear(ArmConstants.kMaxAngle, Units.degreesToRadians(toleranceDegrees));
+    if (getAngle().isNear(ArmConstants.kMinAngle, Degrees.of(toleranceDegrees)))
+    {
+      System.out.println("Current angle: " + getAngle().in(Degrees));
+      System.out.println("At min:" + getAngle().isNear(ArmConstants.kMinAngle, Degrees.of(toleranceDegrees)));
+    }
+    return getAngle().isNear(ArmConstants.kMinAngle, Degrees.of(toleranceDegrees));
 
   }
 
@@ -232,9 +236,9 @@ public class ArmSubsystem extends SubsystemBase
   public Command runSysIdRoutine()
   {
     return m_sysIdRoutine.dynamic(Direction.kForward).until(atMax)
-                         .andThen(m_sysIdRoutine.dynamic(Direction.kReverse)).until(atMin)
-                         .andThen(m_sysIdRoutine.quasistatic(Direction.kForward)).until(atMax)
-                         .andThen(m_sysIdRoutine.quasistatic(Direction.kReverse)).until(atMin);
+                         .andThen(m_sysIdRoutine.dynamic(Direction.kReverse).until(atMin))
+                         .andThen(m_sysIdRoutine.quasistatic(Direction.kForward).until(atMax))
+                         .andThen(m_sysIdRoutine.quasistatic(Direction.kReverse).until(atMin));
   }
 
   /**
@@ -267,7 +271,7 @@ public class ArmSubsystem extends SubsystemBase
   public Angle getAngle()
   {
     m_angle.mut_replace(Arm.convertSensorUnitsToAngle(m_angle.mut_replace(m_encoder.getPosition(), Rotations)));
-    return m_angle;
+    return Arm.convertSensorUnitsToAngle(m_angle.mut_replace(m_encoder.getPosition(), Rotations));
   }
 
   /**
