@@ -99,14 +99,14 @@ public class Constants
   {
 
 
-    public static final double kElevatorKp = 22.234;
+    public static final double kElevatorKp = 26.722;
     public static final double kElevatorKi = 0;
-    public static final double kElevatorKd = 0.55941;
+    public static final double kElevatorKd = 1.6047;
 
-    public static final double kElevatorkS = 0.015746; // volts (V)
-    public static final double kElevatorkV = 3.9048; // volt per velocity (V/(m/s))
-    public static final double kElevatorkA = 0.096651; // volt per acceleration (V/(m/s²))
-    public static final double kElevatorkG = 0.91851; // volts (V)
+    public static final double kElevatorkS = 0.01964; // volts (V)
+    public static final double kElevatorkV = 3.894; // volt per velocity (V/(m/s))
+    public static final double kElevatorkA = 0.173; // volt per acceleration (V/(m/s²))
+    public static final double kElevatorkG = 0.91274; // volts (V)
 
     public static final double kElevatorGearing    = 10.0;
     public static final double kElevatorDrumRadius = Units.inchesToMeters(2.0);

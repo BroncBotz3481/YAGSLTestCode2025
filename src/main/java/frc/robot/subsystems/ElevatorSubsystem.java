@@ -12,6 +12,7 @@ import static edu.wpi.first.units.Units.Millimeters;
 import static edu.wpi.first.units.Units.Minute;
 import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
 import static edu.wpi.first.units.Units.Second;
 import static edu.wpi.first.units.Units.Seconds;
 import static edu.wpi.first.units.Units.Volts;
@@ -314,7 +315,7 @@ public class ElevatorSubsystem extends SubsystemBase
    */
   public double getVelocityMetersPerSecond()
   {
-    return (m_encoder.getVelocity() / 60 / ElevatorConstants.kElevatorGearing) *
+    return ((m_encoder.getVelocity() / 60)/ ElevatorConstants.kElevatorGearing) *
            (2 * Math.PI * ElevatorConstants.kElevatorDrumRadius);
   }
 
