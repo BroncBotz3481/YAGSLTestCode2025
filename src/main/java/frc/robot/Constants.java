@@ -7,6 +7,8 @@ package frc.robot;
 import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.MetersPerSecondPerSecond;
 import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.units.Units.Rotations;
@@ -97,14 +99,14 @@ public class Constants
   {
 
 
-    public static final double kElevatorKp = 5;
+    public static final double kElevatorKp = 22.234;
     public static final double kElevatorKi = 0;
-    public static final double kElevatorKd = 0;
+    public static final double kElevatorKd = 0.55941;
 
-    public static final double kElevatorkS = 0.0; // volts (V)
-    public static final double kElevatorkG = 0.762; // volts (V)
-    public static final double kElevatorkV = 0.762; // volt per velocity (V/(m/s))
-    public static final double kElevatorkA = 0.0; // volt per acceleration (V/(m/s²))
+    public static final double kElevatorkS = 0.015746; // volts (V)
+    public static final double kElevatorkV = 3.9048; // volt per velocity (V/(m/s))
+    public static final double kElevatorkA = 0.096651; // volt per acceleration (V/(m/s²))
+    public static final double kElevatorkG = 0.91851; // volts (V)
 
     public static final double kElevatorGearing    = 10.0;
     public static final double kElevatorDrumRadius = Units.inchesToMeters(2.0);
@@ -117,11 +119,10 @@ public class Constants
     public static final Distance kMaxElevatorHeight = Meters.of(10.25);
 
 
-    public static double kElevatorRampRate = 1;
+    public static double kElevatorRampRate = 0.1;
     public static int    kElevatorCurrentLimit = 40;
-    public static double kMaxVelocity = Elevator.convertDistanceToRotations(Meters.of(1)).per(Second).in(RPM);
-    public static double kMaxAcceleration = Elevator.convertDistanceToRotations(Meters.of(2)).per(Second).per(Second)
-                                                    .in(RPM.per(Second));
+    public static double kMaxVelocity = Meters.of(4).per(Second).in(MetersPerSecond);
+    public static double kMaxAcceleration = Meters.of(8).per(Second).per(Second).in(MetersPerSecondPerSecond);
   }
 
 

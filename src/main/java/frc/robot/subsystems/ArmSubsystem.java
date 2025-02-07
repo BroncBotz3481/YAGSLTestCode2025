@@ -95,8 +95,6 @@ public class ArmSubsystem extends SubsystemBase
                                                     RobotController.getBatteryVoltage(), Volts))
                    .angularPosition(m_angle.mut_replace(m_encoder.getPosition(), Rotations))
                    .angularVelocity(m_velocity.mut_replace(m_encoder.getVelocity(), RPM));
-//                .angularPosition(m_angle.mut_replace(getAngle()))
-//                .angularVelocity(m_velocity.mut_replace(getVelocity()));
               },
               this));
 

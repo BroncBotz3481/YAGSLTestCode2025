@@ -23,20 +23,20 @@ import au.grapplerobotics.interfaces.LaserCanInterface.RegionOfInterest;
 import au.grapplerobotics.interfaces.LaserCanInterface.TimingBudget;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
-import com.revrobotics.spark.ClosedLoopSlot;
-import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
-import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ElevatorFeedforward;
+import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.MutAngle;
 import edu.wpi.first.units.measure.MutDistance;
 import edu.wpi.first.units.measure.MutLinearVelocity;
 import edu.wpi.first.units.measure.MutVoltage;
@@ -64,10 +64,10 @@ import frc.robot.RobotMath.Elevator;
 public class ElevatorSubsystem extends SubsystemBase
 {
 
-  public final Trigger atMin = new Trigger(() -> getHeight().isNear(ElevatorConstants.kMinElevatorHeight,
-                                                                    Inches.of(3)));
-  public final Trigger atMax = new Trigger(() -> getHeight().isNear(ElevatorConstants.kMaxElevatorHeight,
-                                                                    Inches.of(3)));
+  public final Trigger atMin = new Trigger(() -> getLinearPosition().isNear(ElevatorConstants.kMinElevatorHeight,
+                                                                            Inches.of(3)));
+  public final Trigger atMax = new Trigger(() -> getLinearPosition().isNear(ElevatorConstants.kMaxElevatorHeight,
+                                                                            Inches.of(3)));
 
 
   // This gearbox represents a gearbox containing 1 Neo
@@ -80,10 +80,9 @@ public class ElevatorSubsystem extends SubsystemBase
           ElevatorConstants.kElevatorkG,
           ElevatorConstants.kElevatorkV,
           ElevatorConstants.kElevatorkA);
-  private final SparkMax                  m_motor      = new SparkMax(1, MotorType.kBrushless);
-  private final SparkClosedLoopController m_controller = m_motor.getClosedLoopController();
-  private final RelativeEncoder           m_encoder    = m_motor.getEncoder();
-  private final SparkMaxSim               m_motorSim   = new SparkMaxSim(m_motor, m_elevatorGearbox);
+  private final SparkMax        m_motor    = new SparkMax(1, MotorType.kBrushless);
+  private final RelativeEncoder m_encoder  = m_motor.getEncoder();
+  private final SparkMaxSim     m_motorSim = new SparkMaxSim(m_motor, m_elevatorGearbox);
 
   // Sensors
   private final LaserCan         m_elevatorLaserCan     = new LaserCan(0);
@@ -95,6 +94,12 @@ public class ElevatorSubsystem extends SubsystemBase
 
   private final DigitalInput m_limitSwitchLow    = new DigitalInput(1);
   private       DIOSim       m_limitSwitchLowSim = null;
+
+  private final ProfiledPIDController m_controller = new ProfiledPIDController(ElevatorConstants.kElevatorKp,
+                                                                               ElevatorConstants.kElevatorKi,
+                                                                               ElevatorConstants.kElevatorKd,
+                                                                               new Constraints(ElevatorConstants.kMaxVelocity,
+                                                                                               ElevatorConstants.kMaxAcceleration));
 
   // Simulation classes help us simulate what's going on, including gravity.
   private final ElevatorSim m_elevatorSim =
@@ -116,14 +121,15 @@ public class ElevatorSubsystem extends SubsystemBase
   private final MutVoltage        m_appliedVoltage = Volts.mutable(0);
   // Mutable holder for unit-safe linear distance values, persisted to avoid reallocation.
   private final MutDistance       m_distance       = Meters.mutable(0);
+  private final MutAngle          m_rotations      = Rotations.mutable(0);
   // Mutable holder for unit-safe linear velocity values, persisted to avoid reallocation.
   private final MutLinearVelocity m_velocity       = MetersPerSecond.mutable(0);
   // SysID Routine
   private final SysIdRoutine      m_sysIdRoutine   =
       new SysIdRoutine(
           // Empty config defaults to 1 volt/second ramp rate and 7 volt step voltage.
-          new SysIdRoutine.Config(Volts.per(Second).of(ElevatorConstants.kElevatorRampRate),
-                                  Volts.of(9),
+          new SysIdRoutine.Config(Volts.per(Second).of(1),
+                                  Volts.of(7),
                                   Seconds.of(10)),
           new SysIdRoutine.Mechanism(
               // Tell SysId how to plumb the driving voltage to the motor(s).
@@ -136,8 +142,10 @@ public class ElevatorSubsystem extends SubsystemBase
                    .voltage(
                        m_appliedVoltage.mut_replace(
                            m_motor.getAppliedOutput() * RobotController.getBatteryVoltage(), Volts))
-                   .linearPosition(m_distance.mut_replace(getHeight()))
-                   .linearVelocity(m_velocity.mut_replace(getVelocity()));
+                   .linearPosition(m_distance.mut_replace(getHeightMeters(),
+                                                          Meters)) // Records Height in Meters via SysIdRoutineLog.linearPosition
+                   .linearVelocity(m_velocity.mut_replace(getVelocityMetersPerSecond(),
+                                                          MetersPerSecond)); // Records velocity in MetersPerSecond via SysIdRoutineLog.linearVelocity
               },
               this));
 
@@ -152,11 +160,7 @@ public class ElevatorSubsystem extends SubsystemBase
         .closedLoopRampRate(ElevatorConstants.kElevatorRampRate)
         .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-        .pid(ElevatorConstants.kElevatorKp, ElevatorConstants.kElevatorKi, ElevatorConstants.kElevatorKd)
-        .outputRange(-1, 1)
-        .maxMotion
-        .maxVelocity(ElevatorConstants.kMaxVelocity)
-        .maxAcceleration(ElevatorConstants.kMaxAcceleration);
+        .outputRange(-1, 1);
     m_motor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
 
     // Publish Mechanism2d to SmartDashboard
@@ -174,8 +178,8 @@ public class ElevatorSubsystem extends SubsystemBase
     {
       m_limitSwitchLowSim = new DIOSim(m_limitSwitchLow);
       SmartDashboard.putData("Elevator Low Limit Switch", m_limitSwitchLow);
-      seedElevatorMotorPosition();
     }
+    seedElevatorMotorPosition();
   }
 
   /**
@@ -212,8 +216,8 @@ public class ElevatorSubsystem extends SubsystemBase
     ));
 
     // Update elevator visualization with position
-    Constants.kElevatorTower.setLength(getHeight().in(Meters));
-    Constants.kElevatorCarriage.setPosition(ArmConstants.kArmLength, getHeight().in(Meters));
+    Constants.kElevatorTower.setLength(getLinearPosition().in(Meters));
+    Constants.kElevatorCarriage.setPosition(ArmConstants.kArmLength, getLinearPosition().in(Meters));
   }
 
   /**
@@ -250,10 +254,11 @@ public class ElevatorSubsystem extends SubsystemBase
    */
   public void reachGoal(double goal)
   {
-    m_controller.setReference(Elevator.convertDistanceToRotations(Meters.of(goal)).in(Rotations),
-                              ControlType.kMAXMotionPositionControl,
-                              ClosedLoopSlot.kSlot0,
-                              m_feedforward.calculate(getVelocity().in(MetersPerSecond)));
+    double voltsOut = MathUtil.clamp(
+        m_controller.calculate(getHeightMeters(), goal) +
+        m_feedforward.calculateWithVelocities(getVelocityMetersPerSecond(),
+                                              m_controller.getSetpoint().velocity), -7, 7);
+    m_motor.setVoltage(voltsOut);
   }
 
   /**
@@ -264,10 +269,10 @@ public class ElevatorSubsystem extends SubsystemBase
   public Command runSysIdRoutine()
   {
     return (m_sysIdRoutine.dynamic(Direction.kForward).until(atMax))
-            .andThen(m_sysIdRoutine.dynamic(Direction.kReverse).until(atMin))
-            .andThen(m_sysIdRoutine.quasistatic(Direction.kForward).until(atMax))
-            .andThen(m_sysIdRoutine.quasistatic(Direction.kReverse).until(atMin))
-            .andThen(Commands.print("DONE"));
+        .andThen(m_sysIdRoutine.dynamic(Direction.kReverse).until(atMin))
+        .andThen(m_sysIdRoutine.quasistatic(Direction.kForward).until(atMax))
+        .andThen(m_sysIdRoutine.quasistatic(Direction.kReverse).until(atMin))
+        .andThen(Commands.print("DONE"));
   }
 
 
@@ -276,7 +281,7 @@ public class ElevatorSubsystem extends SubsystemBase
    *
    * @return Elevator Velocity
    */
-  public LinearVelocity getVelocity()
+  public LinearVelocity getLinearVelocity()
   {
     return Elevator.convertRotationsToDistance(Rotations.of(m_encoder.getVelocity())).per(Minute);
   }
@@ -286,7 +291,7 @@ public class ElevatorSubsystem extends SubsystemBase
    *
    * @return Height of the elevator
    */
-  public Distance getHeight()
+  public Distance getLinearPosition()
   {
     return Elevator.convertRotationsToDistance(Rotations.of(m_encoder.getPosition()));
   }
@@ -298,7 +303,19 @@ public class ElevatorSubsystem extends SubsystemBase
    */
   public double getHeightMeters()
   {
-    return Elevator.convertRotationsToDistance(Rotations.of(m_encoder.getPosition())).in(Meters);
+    return (m_encoder.getPosition() / ElevatorConstants.kElevatorGearing) *
+           (2 * Math.PI * ElevatorConstants.kElevatorDrumRadius);
+  }
+
+  /**
+   * The velocity of the elevator in meters per second.
+   *
+   * @return velocity in meters per second
+   */
+  public double getVelocityMetersPerSecond()
+  {
+    return (m_encoder.getVelocity() / 60 / ElevatorConstants.kElevatorGearing) *
+           (2 * Math.PI * ElevatorConstants.kElevatorDrumRadius);
   }
 
   /**
